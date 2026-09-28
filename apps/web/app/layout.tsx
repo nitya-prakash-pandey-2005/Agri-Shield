@@ -1,14 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "sonner";
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-});
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+const display = Space_Grotesk({ subsets: ["latin"], display: "swap", variable: "--font-display", weight: ["500", "600", "700"] });
+const mono = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: {
@@ -27,7 +25,7 @@ export const metadata: Metadata = {
     "early warning system",
     "crop protection",
   ],
-  authors: [{ name: "Agri-SHIELD Team" }],
+  authors: [{ name: "Nitya Prakash Pandey" }],
   creator: "Agri-SHIELD",
   openGraph: {
     type: "website",
@@ -83,7 +81,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${display.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link

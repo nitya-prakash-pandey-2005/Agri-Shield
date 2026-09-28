@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: agri-shield-postgres
+    environment:
+      POSTGRES_USER: agrishield
+      POSTGRES_PASSWORD: agrishield_dev_password
+      POSTGRES_DB: agrishield
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agrishield"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: agri-shield-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ml-api:
+    build:
+      context: ./apps/ml-api
+      dockerfile: Dockerfile
+    container_name: agri-shield-ml
+    ports:
+      - "8000:8000"
+    environment:
+      - OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
+      - SOILGRIDS_BASE_URL=https://rest.isric.org/soilgrids/v2.0
+      - DATABASE_URL=postgresql://agrishield:agrishield_dev_password@postgres:5432/agrishield
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

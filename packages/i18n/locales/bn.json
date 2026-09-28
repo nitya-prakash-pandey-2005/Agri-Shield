@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "farmer": {
+      "greeting": "নমস্কার, {name}",
+      "riskLevel": "ঝুঁকির মাত্রা",
+      "floodWarning": "বন্যা সতর্কতা",
+      "actions": "প্রয়োজনীয় পদক্ষেপ"
+    },
+    "gov": {
+      "title": "সরকারি পোর্টাল",
+      "districts": "ঝুঁকিপূর্ণ জেলা",
+      "resources": "সম্পদ প্রেরণ"
+    }
+  },
+  "common": {
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল",
+    "submit": "জমা দিন"
+  }
+}

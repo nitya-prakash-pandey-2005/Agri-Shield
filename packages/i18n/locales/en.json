@@ -1,0 +1,20 @@
+{
+  "dashboard": {
+    "farmer": {
+      "greeting": "Hello, {name}",
+      "riskLevel": "Risk Level",
+      "floodWarning": "Flood Warning",
+      "actions": "Required Actions"
+    },
+    "gov": {
+      "title": "Government Portal",
+      "districts": "Districts at Risk",
+      "resources": "Resource Dispatch"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit"
+  }
+}

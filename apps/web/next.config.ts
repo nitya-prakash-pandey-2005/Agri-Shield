@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allows parallel dev servers (e.g. NEXT_DIST_DIR=.next-gov next dev -p 3102)
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@agri-shield/db", "@agri-shield/types"],
   images: {
     remotePatterns: [

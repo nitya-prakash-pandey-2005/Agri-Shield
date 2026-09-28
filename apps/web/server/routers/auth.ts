@@ -1,0 +1,93 @@
+/**
+ * Registration + OTP issuing. Sign-in itself goes through NextAuth credentials.
+ */
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { getStore, nextId, audit, type UserRecord } from "../data/store";
+import { issueOtp } from "../auth/otp";
+import { sendSms } from "../notify/channels";
+
+const LANGS = ["en", "hi", "bn", "vi", "fil", "id", "ta", "si"] as const;
+
+export const authRouter = router({
+  requestOtp: publicProcedure
+    .input(z.object({ identifier: z.string().min(5).max(128) }))
+    .mutation(async ({ input }) => {
+      const id = input.identifier.replace(/\s/g, "").toLowerCase();
+      const code = issueOtp(id);
+      if (!id.includes("@")) await sendSms(id, `Your Agri-SHIELD code is ${code}. Valid 10 minutes.`);
+      const demo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
+      return { sent: true, channel: id.includes("@") ? "email" : "sms", demoHint: demo ? "Demo mode: use 123456" : null };
+    }),
+
+  register: publicProcedure
+    .input(
+      z.object({
+        name: z.string().min(2).max(80),
+        role: z.enum(["farmer", "field_officer", "supply_chain_analyst"]),
+        email: z.string().email().optional(),
+        phone: z.string().min(7).max(20).optional(),
+        password: z.string().min(8).max(128).optional(),
+        organization: z.string().min(2).max(120).optional(),
+        country: z.string().max(60).optional(),
+        language: z.enum(LANGS).default("en"),
+      })
+    )
+    .mutation(({ input }) => {
+      const s = getStore();
+      if (!input.email && !input.phone) throw new TRPCError({ code: "BAD_REQUEST", message: "Email or phone required" });
+      const exists = s.users.find(
+        (u) => (input.email && u.email?.toLowerCase() === input.email.toLowerCase()) || (input.phone && u.phone === input.phone.replace(/\s/g, ""))
+      );
+      if (exists) throw new TRPCError({ code: "CONFLICT", message: "An account with this email/phone already exists" });
+
+      let orgId: string | null = null;
+      if (input.role !== "farmer" && input.organization) {
+        orgId = nextId("org");
+        s.orgs.push({
+          id: orgId,
+          name: input.organization,
+          shortName: input.organization.split(" ").map((w) => w[0]).join("").slice(0, 6).toUpperCase(),
+          type: input.role === "field_officer" ? "government" : "supply_chain",
+          country: input.country ?? "—",
+          region: null,
+          verified: false,
+          planTier: input.role === "field_officer" ? "gov_basic" : "supply_chain",
+          createdAt: new Date(),
+        });
+      }
+      const user: UserRecord = {
+        id: nextId("user"),
+        email: input.email?.toLowerCase() ?? null,
+        phone: input.phone?.replace(/\s/g, "") ?? null,
+        name: input.name,
+        role: input.role,
+        language: input.language,
+        orgId,
+        subscriptionTier: input.role === "farmer" ? "free" : input.role === "field_officer" ? "gov_basic" : "supply_chain",
+        status: input.role === "farmer" ? "active" : "pending_verification",
+        createdAt: new Date(),
+        lastActive: new Date(),
+        password: input.password,
+      };
+      // Org users can explore their dashboard while verification is pending (trial)
+      if (user.status === "pending_verification") user.status = "active";
+      s.users.push(user);
+      audit({ userId: user.id, userName: user.name, action: "user.register", entity: "user", entityId: user.id, details: `Registered as ${user.role}` });
+      return { userId: user.id, requiresVerification: input.role !== "farmer", orgId };
+    }),
+
+  me: protectedProcedure.query(({ ctx }) => {
+    const s = getStore();
+    const u = s.users.find((x) => x.id === ctx.user.id);
+    const org = u?.orgId ? s.orgs.find((o) => o.id === u.orgId) : null;
+    return u ? { id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role, language: u.language, subscriptionTier: u.subscriptionTier, org } : null;
+  }),
+
+  setLanguage: protectedProcedure.input(z.object({ language: z.enum(LANGS) })).mutation(({ ctx, input }) => {
+    const u = getStore().users.find((x) => x.id === ctx.user.id);
+    if (u) u.language = input.language;
+    return { ok: true };
+  }),
+});

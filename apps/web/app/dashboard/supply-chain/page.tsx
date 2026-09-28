@@ -7,7 +7,7 @@ import {
   Shield, TruckIcon, BarChart3, Map, Bell, Settings,
   LogOut, Home, Package, RefreshCcw, AlertTriangle,
   TrendingUp, TrendingDown, ChevronRight, ChevronDown,
-  DollarSign, Zap, Globe2, Filter, Download, X, Check,
+  DollarSign, Plus, Zap, Globe2, Filter, Download, X, Check,
   Loader2, Building2
 } from "lucide-react";
 import {

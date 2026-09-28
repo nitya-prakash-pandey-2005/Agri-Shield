@@ -4,7 +4,7 @@ const next = require('next');
 const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = process.env.HOSTNAME || 'localhost';
 const port = process.env.PORT || 3000;
 
 // Initialize the Next.js app
@@ -26,10 +26,13 @@ app.prepare().then(() => {
   // Initialize Socket.io
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: (process.env.CORS_ORIGINS || `http://localhost:${port}`).split(','),
       methods: ["GET", "POST"]
     }
   });
+
+  // Expose to Next.js route handlers (server/realtime.ts publishes through this)
+  globalThis.__agriIO = io;
 
   io.on('connection', (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);

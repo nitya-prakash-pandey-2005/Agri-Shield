@@ -200,7 +200,7 @@ export function RiskMeter({
               fontSize={labelSize}
               fontWeight="600"
               fontFamily="Inter, sans-serif"
-              textTransform="uppercase"
+              style={{ textTransform: "uppercase" }}
               letterSpacing="1"
             >
               {riskLabel}

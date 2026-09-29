@@ -8,13 +8,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Building2, Check, Clock3, Gift, Loader2, Sprout, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Briefcase, Check, ChevronRight, Clock3, Gift, Loader2, Sprout, Truck } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { homeForRole } from "@/lib/rbac";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { AuthShell, FieldError, FormError, authInput, inputState, safeCallback } from "../_components/AuthShell";
+import { OrgSignup } from "./OrgSignup";
 
 type Role = "farmer" | "field_officer" | "supply_chain_analyst";
 
@@ -54,6 +55,7 @@ function SignUpFlow() {
   const ref = params?.get("ref");
   const callbackUrl = safeCallback(params?.get("callbackUrl"));
   const [step, setStep] = useState(0);
+  const [mode, setMode] = useState<"person" | "org">(params?.get("type") === "org" ? "org" : "person");
   const [role, setRole] = useState<Role>("farmer");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -98,6 +100,21 @@ function SignUpFlow() {
   const busy = formState.isSubmitting || register.isPending || requestOtp.isPending;
   const stepLabels = [t("auth.stepRole"), t("auth.stepLanguage"), t("auth.stepDetails")];
 
+  if (mode === "org")
+    return (
+      <AuthShell wide>
+        <h1 className="font-display text-2xl font-semibold text-white">Create your organisation workspace</h1>
+        <p className="mt-1 text-sm text-slate-400">For insurers, banks, agribusinesses, governments, NGOs and co-operatives. Your team, portfolio, alerts and reports in one place.</p>
+        <OrgSignup onBack={() => setMode("person")} language={locale} />
+        <p className="mt-6 text-center text-sm text-slate-400">
+          {t("auth.haveAccount")}{" "}
+          <Link href="/auth/signin?tab=email" className="font-medium text-emerald-400 hover:underline">
+            {t("auth.signIn")}
+          </Link>
+        </p>
+      </AuthShell>
+    );
+
   return (
     <AuthShell wide>
       {step < 3 && (
@@ -124,6 +141,16 @@ function SignUpFlow() {
       <AnimatePresence mode="wait">
         {step === 0 && (
           <motion.div key="role" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="mt-5">
+            <button type="button" onClick={() => setMode("org")} className="group mb-4 flex w-full items-center gap-3 rounded-xl border border-cyan-400/40 bg-gradient-to-r from-cyan-500/10 to-violet-500/10 p-3 text-left transition-colors hover:border-cyan-300">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan-500/20">
+                <Briefcase size={20} className="text-cyan-300" />
+              </span>
+              <span className="flex-1">
+                <span className="block font-medium text-white">Organisation workspace</span>
+                <span className="block text-xs text-slate-400">Insurer, bank, NGO, co-op, agribusiness or agency · 14-day Business trial</span>
+              </span>
+              <ChevronRight size={18} className="text-cyan-300 transition-transform group-hover:translate-x-0.5" />
+            </button>
             <div className="mb-2 text-sm text-slate-300">{t("auth.roleQuestion")}</div>
             <div role="radiogroup" className="space-y-2">
               {roles.map((r) => {

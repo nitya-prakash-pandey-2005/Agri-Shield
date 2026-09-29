@@ -7,6 +7,7 @@ import { publicProcedure, protectedProcedure, router } from "../trpc";
 import { getStore, nextId, audit, type UserRecord } from "../data/store";
 import { issueOtp } from "../auth/otp";
 import { sendSms } from "../notify/channels";
+import { provisionWorkspace } from "../services/workspace-provision";
 
 const LANGS = ["en", "hi", "bn", "vi", "fil", "id", "ta", "si"] as const;
 
@@ -81,6 +82,29 @@ export const authRouter = router({
       }
       audit({ userId: user.id, userName: user.name, action: "user.register", entity: "user", entityId: user.id, details: `Registered as ${user.role}` });
       return { userId: user.id, requiresVerification: input.role !== "farmer", orgId };
+    }),
+
+  /**
+   * Enterprise self-serve sign-up: creates an organisation workspace
+   * (industry, settings, 14-day Business trial) with the caller as its admin.
+   */
+  registerWorkspace: publicProcedure
+    .input(
+      z.object({
+        orgName: z.string().trim().min(2).max(120),
+        industry: z.enum(["insurance", "banking", "agribusiness", "government", "ngo", "cooperative"]),
+        country: z.string().trim().min(2).max(60),
+        name: z.string().trim().min(2).max(80),
+        title: z.string().trim().max(80).optional(),
+        email: z.string().trim().email().max(120),
+        password: z.string().min(8).max(128),
+        language: z.enum(LANGS).default("en"),
+        website: z.string().max(0).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { org, user } = await provisionWorkspace(input);
+      return { userId: user.id, orgId: org.id, role: user.role, trialEndsAt: org.trialEndsAt ?? null };
     }),
 
   me: protectedProcedure.query(({ ctx }) => {

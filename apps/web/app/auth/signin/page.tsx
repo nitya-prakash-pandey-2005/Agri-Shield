@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Building2, Eye, EyeOff, KeyRound, Loader2, Mail, Smartphone, Sprout, Truck, UserCog } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, HandHeart, KeyRound, Landmark, Loader2, Mail, ShieldCheck, Smartphone, Sprout, Truck, UserCog, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/I18nProvider";
@@ -88,6 +88,13 @@ function SignInForm() {
     { key: "gov", label: t("auth.demoGov"), icon: Building2, color: "#38bdf8", creds: { mode: "password", email: "gov@demo.agrishield.io", password: "demo2026" } },
     { key: "supply", label: t("auth.demoSupply"), icon: Truck, color: "#f59e0b", creds: { mode: "password", email: "supply@demo.agrishield.io", password: "demo2026" } },
     { key: "admin", label: t("auth.demoAdmin"), icon: UserCog, color: "#a78bfa", creds: { mode: "password", email: "admin@demo.agrishield.io", password: "demo2026" } },
+  ];
+  /** Multi-tenant SaaS workspaces (seeded tenants) — land on /app */
+  const workspaceDemos: (Demo & { org: string })[] = [
+    { key: "insurer", label: "Insurer", org: "Delta Mutual · 140 plots", icon: ShieldCheck, color: "#38bdf8", creds: { mode: "password", email: "insurer@demo.agrishield.io", password: "demo2026" } },
+    { key: "bank", label: "Bank", org: "Mekong Rural Credit · 160 loans", icon: Landmark, color: "#a78bfa", creds: { mode: "password", email: "bank@demo.agrishield.io", password: "demo2026" } },
+    { key: "ngo", label: "NGO", org: "Delta Resilience · 48 communities", icon: HandHeart, color: "#f472b6", creds: { mode: "password", email: "ngo@demo.agrishield.io", password: "demo2026" } },
+    { key: "coop", label: "Co-op", org: "Mahanadi FPC · 90 farms", icon: Users, color: "#10b981", creds: { mode: "password", email: "coop@demo.agrishield.io", password: "demo2026" } },
   ];
 
   return (
@@ -179,10 +186,40 @@ function SignInForm() {
         ))}
       </div>
 
+      <div className="mt-4 mb-2 flex items-center gap-2">
+        <span className="hud-label text-cyan-300/80">Enterprise workspaces</span>
+        <span className="hud-divider flex-1" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {workspaceDemos.map((d) => (
+          <motion.button
+            key={d.key}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => login(d.key, d.creds)}
+            disabled={!!busy}
+            className="group flex min-h-[56px] items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-950/50 px-3 text-left text-sm text-slate-200 transition-colors hover:border-[color:var(--c)] disabled:opacity-50"
+            style={{ ["--c" as string]: `${d.color}99` }}
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${d.color}22` }}>
+              {busy === d.key ? <Loader2 size={15} className="animate-spin" style={{ color: d.color }} /> : <d.icon size={15} style={{ color: d.color }} />}
+            </span>
+            <span className="min-w-0">
+              <span className="block font-medium">{d.label}</span>
+              <span className="block truncate text-[10.5px] text-slate-500">{d.org}</span>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+
       <p className="mt-6 text-center text-sm text-slate-400">
         {t("auth.noAccount")}{" "}
         <Link href={`/auth/signup${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`} className="font-medium text-emerald-400 hover:underline">
           {t("auth.createAccount")}
+        </Link>
+        <span className="mx-1.5 text-slate-600">·</span>
+        <Link href="/auth/signup?type=org" className="font-medium text-cyan-300 hover:underline">
+          Create an organisation workspace
         </Link>
       </p>
     </AuthShell>

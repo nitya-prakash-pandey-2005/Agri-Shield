@@ -1,23 +1,56 @@
 {
-  "name": "Agri-SHIELD Farmer Portal",
+  "id": "/dashboard/farmer",
+  "name": "Agri-SHIELD — Climate Intelligence for Farmers",
   "short_name": "Agri-SHIELD",
-  "description": "AI-Powered Climate Decision Intelligence for Farmers",
-  "start_url": "/dashboard/farmer",
+  "description": "72-hour flood and saltwater-intrusion alerts, field risk maps and an AI farm advisor that keeps working offline.",
+  "start_url": "/dashboard/farmer?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#052e16",
-  "theme_color": "#16a34a",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#050a14",
+  "theme_color": "#050a14",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["agriculture", "weather", "utilities", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Active alerts",
+      "short_name": "Alerts",
+      "description": "Flood and salinity alerts for your fields",
+      "url": "/dashboard/farmer/alerts?source=shortcut",
+      "icons": [{ "src": "/shortcut-alerts.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
+      "name": "Ask the AI farm advisor",
+      "short_name": "Advisor",
+      "description": "Crop advice grounded in your field's live conditions",
+      "url": "/dashboard/farmer/advisor?source=shortcut",
+      "icons": [{ "src": "/shortcut-advisor.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Field risk map",
+      "short_name": "Map",
+      "description": "Flood and salinity risk around your farm",
+      "url": "/dashboard/farmer/map?source=shortcut",
+      "icons": [{ "src": "/shortcut-map.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
       "type": "image/png",
-      "purpose": "any maskable"
+      "form_factor": "wide",
+      "label": "Agri-SHIELD — act before the flood hits, save before the salt spreads"
     }
   ]
 }

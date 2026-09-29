@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "sonner";
+import { PwaManager } from "@/components/pwa/PwaManager";
+import { CommandPaletteHost } from "@/components/command/CommandPaletteHost";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 const display = Space_Grotesk({ subsets: ["latin"], display: "swap", variable: "--font-display", weight: ["500", "600", "700"] });
@@ -26,7 +28,12 @@ export const metadata: Metadata = {
     "crop protection",
   ],
   authors: [{ name: "Nitya Prakash Pandey" }],
-  creator: "Agri-SHIELD",
+  creator: "Nitya Prakash Pandey",
+  publisher: "Agri-SHIELD",
+  applicationName: "Agri-SHIELD",
+  category: "agriculture",
+  appleWebApp: { capable: true, title: "Agri-SHIELD", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -54,7 +61,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -67,8 +75,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0f1e" },
+    { media: "(prefers-color-scheme: light)", color: "#050a14" },
+    { media: "(prefers-color-scheme: dark)", color: "#050a14" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -93,6 +101,8 @@ export default function RootLayout({
       <body className="min-h-screen antialiased">
         <Providers>
           {children}
+          <PwaManager />
+          <CommandPaletteHost />
           <Toaster
             position="top-right"
             toastOptions={{

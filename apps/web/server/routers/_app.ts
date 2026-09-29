@@ -6,6 +6,7 @@ import { farmerRouter } from "./farmer";
 import { governmentRouter } from "./government";
 import { supplyChainRouter } from "./supplyChain";
 import { adminRouter } from "./admin";
+import { billingRouter } from "./billing";
 
 export const appRouter = router({
   public: publicRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   government: governmentRouter,
   supplyChain: supplyChainRouter,
   admin: adminRouter,
+  billing: billingRouter,
 });
 
 export type AppRouter = typeof appRouter;

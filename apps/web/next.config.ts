@@ -22,6 +22,8 @@ const TILE_HOSTS = [
   "https://gibs.earthdata.nasa.gov",
   "https://*.tile.openstreetmap.org",
   "https://tile.openstreetmap.org",
+  "https://tilecache.rainviewer.com", // live precipitation radar
+  "https://storage.googleapis.com", // JRC Global Surface Water tiles
 ];
 
 const csp = [

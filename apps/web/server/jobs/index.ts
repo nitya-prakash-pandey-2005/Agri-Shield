@@ -17,6 +17,7 @@ export const JOB_FNS: Record<JobName, (by: string) => Promise<JobResult>> = {
   "notification-dispatch": () => notificationDispatch(),
   "satellite-ingest": () => satelliteIngest(),
   "model-retrain": (by) => modelRetrain({ triggeredBy: by === "system" ? undefined : by }),
+  "portfolio-monitor": (by) => import("./portfolio-monitor").then((m) => m.portfolioMonitor({ triggeredBy: by })),
 };
 
 export const JOB_NAMES = Object.keys(JOB_FNS) as JobName[];

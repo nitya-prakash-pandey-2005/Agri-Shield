@@ -6,6 +6,7 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { getStore, type ApiKeyRecord } from "../data/store";
 import { rateLimit } from "../rate-limit";
+import { trackUsage } from "../services/usage";
 import { hasHash, verifyApiKey } from "../services/supply-chain";
 
 export const API_VERSION = "1.0.0";
@@ -81,7 +82,10 @@ export function authorize(req: Request, opts: { requireKey?: boolean; scope?: st
   if (!rateLimit(bucket, limit) || (key && !rateLimit(`api:org:${key.orgId}`, 1000))) {
     return apiError(429, "rate_limited", `Rate limit exceeded (${limit} req/min)`, undefined, { "Retry-After": "60" });
   }
-  if (key) key.lastUsed = new Date();
+  if (key) {
+    key.lastUsed = new Date();
+    trackUsage(key.orgId, "apiCalls");
+  }
   return { apiKey: key, ip, requestId };
 }
 

@@ -21,9 +21,15 @@ const PROCESSORS: Record<JobName, Processor> = {
   "notification-dispatch": processNotificationDispatch,
   "satellite-ingest": processSatelliteIngest,
   "model-retrain": processModelRetrain,
+  "portfolio-monitor": async (job) => {
+    const { triggerJob } = await import("../jobs");
+    const run = await triggerJob("portfolio-monitor", "bullmq", (job.data?.triggeredBy as string) ?? "bullmq");
+    if (run.status === "failed") throw new Error(run.error ?? run.summary);
+    return { runId: run.id, status: run.status, summary: run.summary };
+  },
 };
 
-const ATTEMPTS: Record<JobName, number> = { "climate-scan": 3, "notification-dispatch": 5, "satellite-ingest": 2, "model-retrain": 2 };
+const ATTEMPTS: Record<JobName, number> = { "climate-scan": 3, "notification-dispatch": 5, "satellite-ingest": 2, "model-retrain": 2, "portfolio-monitor": 2 };
 
 type BullMQModule = typeof import("bullmq");
 type IORedisModule = { default?: typeof RedisT } & typeof RedisT;

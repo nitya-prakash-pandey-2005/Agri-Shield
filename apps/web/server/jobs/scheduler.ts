@@ -9,7 +9,7 @@
  *   DISABLE_SCHEDULER=true (or NODE_ENV=test) → off.
  * Redis is optional: any connection failure falls back to timers, never crashes.
  */
-import { JOB_DEFS, schedulerState, setNextRun, setSchedulerState, type JobName } from "./registry";
+import { CADENCE, JOB_DEFS, schedulerState, setNextRun, setSchedulerState, type JobName } from "./registry";
 import { triggerJob } from "./index";
 
 const g = globalThis as unknown as { __agriSchedulerStarted?: boolean; __agriTimers?: NodeJS.Timeout[] };
@@ -64,8 +64,9 @@ function atWallClock(job: JobName, next: () => Date) {
 
 export function startIntervalScheduler(reason = "in-process timers") {
   setSchedulerState({ mode: "interval", startedAt: new Date(), detail: reason });
-  every("climate-scan", 30 * MIN, 15_000);
+  every("climate-scan", CADENCE.climateScanMin * MIN, 15_000);
   every("notification-dispatch", 2 * MIN, 40_000);
+  every("portfolio-monitor", CADENCE.portfolioMonitorMin * MIN, CADENCE.portfolioFirstRunMs);
   // satellite: once shortly after boot (non-blocking, ~2 min of polite API calls), then daily 02:00 UTC
   if (process.env.SATELLITE_BOOT_INGEST !== "false") timer(() => fire("satellite-ingest", "boot"), 45_000);
   atWallClock("satellite-ingest", () => nextUtc(2, 0));

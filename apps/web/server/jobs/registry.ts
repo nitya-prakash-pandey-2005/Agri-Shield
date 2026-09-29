@@ -4,7 +4,7 @@
  * instrumentation and the tRPC admin router all see the same history.
  */
 
-export type JobName = "climate-scan" | "notification-dispatch" | "satellite-ingest" | "model-retrain";
+export type JobName = "climate-scan" | "notification-dispatch" | "satellite-ingest" | "model-retrain" | "portfolio-monitor";
 export type JobTrigger = "schedule" | "boot" | "manual" | "bullmq" | "cron" | "scenario";
 export type JobStatus = "running" | "success" | "partial" | "failed" | "skipped";
 
@@ -36,13 +36,24 @@ export interface JobDef {
   cron: string;
 }
 
+/**
+ * Cadence is budgeted against the Open-Meteo free tier (10k location-calls/day)
+ * unless a commercial key is configured, in which case we refresh faster.
+ */
+export const PAID_WEATHER_TIER = !!process.env.OPEN_METEO_API_KEY;
+export const CADENCE = {
+  climateScanMin: PAID_WEATHER_TIER ? 30 : 60,
+  portfolioMonitorMin: PAID_WEATHER_TIER ? 60 : 360,
+  portfolioFirstRunMs: PAID_WEATHER_TIER ? 60_000 : 5 * 60_000,
+};
+
 export const JOB_DEFS: Record<JobName, JobDef> = {
   "climate-scan": {
     name: "climate-scan",
     label: "Climate scan",
     description: "Refresh Open-Meteo / GloFAS / marine risk for 22 districts, check GDACS + EONET hazards, raise model alerts, generate farm recommendations, escalate, fire webhooks.",
-    schedule: "Every 30 min (+15 s after boot)",
-    cron: "*/30 * * * *",
+    schedule: `Every ${CADENCE.climateScanMin} min (+15 s after boot)`,
+    cron: PAID_WEATHER_TIER ? "*/30 * * * *" : "0 * * * *",
   },
   "notification-dispatch": {
     name: "notification-dispatch",
@@ -64,6 +75,13 @@ export const JOB_DEFS: Record<JobName, JobDef> = {
     description: "Send new farmer-action outcomes to the ML service (POST /api/ml/retrain); promote if validation AUC improves.",
     schedule: "Weekly, Sunday 03:00 UTC",
     cron: "0 3 * * 0",
+  },
+  "portfolio-monitor": {
+    name: "portfolio-monitor",
+    label: "Portfolio monitor",
+    description: "Re-score every active workspace asset (Open-Meteo + GloFAS batched), evaluate alert rules and dispatch firings (in-app, e-mail/SMS/WhatsApp, signed webhook, Slack); weekly digest on Mondays.",
+    schedule: PAID_WEATHER_TIER ? "Every 60 min (+60 s after boot)" : "Every 6 h (+5 min after boot) — free weather tier budget",
+    cron: PAID_WEATHER_TIER ? "0 * * * *" : "0 */6 * * *",
   },
 };
 

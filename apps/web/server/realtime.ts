@@ -17,6 +17,10 @@ export type RealtimeEvent =
   | { type: "risk.updated"; districtIds: string[]; at: string }
   | { type: "scan.completed"; alertsCreated: number; at: string }
   | { type: "sms.inbound"; from: string; command: string }
+  | { type: "question.answered"; questionId: string; farmerId: string }
+  | { type: "notification.created"; notificationId: string; workspaceId: string; severity: string; title: string; href?: string | null }
+  | { type: "portfolio.rescored"; workspaceId: string; assets: number; at: string }
+  | { type: "rule.fired"; ruleId: string; workspaceId: string; assets: number; severity: string; name?: string }
   | { type: "webhook.delivered"; webhookId: string; deliveryId: string; status: number | null; ok: boolean; event: string };
 
 export interface RealtimeEnvelope {

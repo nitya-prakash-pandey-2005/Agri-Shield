@@ -2,13 +2,13 @@
 
 /**
  * ⌘K command palette: navigate anywhere, jump to any monitored district on the
- * live map, sign in as a demo role, toggle theme. Loaded lazily by CommandPaletteHost.
+ * live map, sign in as a demo role, switch appearance (theme / accent / motion).
+ * Loaded lazily by CommandPaletteHost.
  */
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
 import { useEffect, useRef, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
@@ -23,7 +23,11 @@ import {
   LogOut,
   Map as MapIcon,
   MapPin,
-  Moon,
+  Monitor,
+  Palette,
+  SlidersHorizontal,
+  Sunrise,
+  Zap,
   Presentation,
   Search,
   ShieldCheck,
@@ -35,6 +39,9 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { riskColor } from "@/components/hud";
+import { ACCENTS, ACCENT_IDS, THEMES, THEME_IDS, modeLabel, type ThemeMode } from "@/components/theme/logic";
+import { THEME_ICONS } from "@/components/theme/ThemeToggle";
+import { openAppearancePanel, useAppearance } from "@/components/theme/useAppearance";
 
 import { FOCUS_DISTRICT_EVENT } from "./events";
 
@@ -94,7 +101,13 @@ export default function CommandPalette({ open, onOpenChange }: { open: boolean; 
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { resolvedTheme, setTheme } = useTheme();
+  const appearance = useAppearance();
+  const centre = () => ({ x: window.innerWidth / 2, y: window.innerHeight * 0.3 });
+  const setMode = (m: ThemeMode) =>
+    run(() => {
+      appearance.setMode(m, centre());
+      toast(`Appearance: ${modeLabel(m)}`, { id: "appearance" });
+    });
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   const districts = trpc.public.riskMap.useQuery(undefined, { enabled: open, staleTime: 5 * 60_000 });
@@ -188,6 +201,47 @@ export default function CommandPalette({ open, onOpenChange }: { open: boolean; 
                   ))}
                 </Command.Group>
 
+                <Command.Group heading="Appearance" className={groupCls}>
+                  {THEME_IDS.map((t) => (
+                    <Item
+                      key={t}
+                      value={`appearance theme ${THEMES[t].label}`}
+                      keywords={["theme", t, t === "light" ? "light mode day" : t === "dark" ? "dark mode night" : t === "midnight" ? "oled black battery" : "accessibility a11y wcag"]}
+                      icon={THEME_ICONS[t]}
+                      onSelect={() => setMode(t)}
+                      hint={appearance.mode === t ? "Current" : THEMES[t].tagline}
+                    >
+                      Appearance: {THEMES[t].label}
+                    </Item>
+                  ))}
+                  <Item value="appearance theme system" keywords={["os", "auto", "follow"]} icon={Monitor} onSelect={() => setMode("system")} hint={appearance.mode === "system" ? "Current" : "Follow your OS"}>
+                    Appearance: System
+                  </Item>
+                  <Item value="appearance theme solar auto" keywords={["sun", "sunrise", "sunset", "auto", "day night"]} icon={Sunrise} onSelect={() => setMode("solar")} hint={appearance.mode === "solar" ? "Current" : "Follow the real sun"}>
+                    Appearance: Solar Auto
+                  </Item>
+                  {ACCENT_IDS.map((id) => (
+                    <Item key={id} value={`appearance accent ${ACCENTS[id].label}`} keywords={["colour", "color", "accent"]} icon={Palette} onSelect={() => run(() => appearance.setAccent(id))} hint={appearance.accent === id ? "Current" : undefined}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: ACCENTS[id].hex }} aria-hidden />
+                        Accent: {ACCENTS[id].label}
+                      </span>
+                    </Item>
+                  ))}
+                  <Item
+                    value="appearance motion reduce animations"
+                    keywords={["motion", "animation", "reduce", "accessibility"]}
+                    icon={Zap}
+                    onSelect={() => run(() => appearance.setMotion(appearance.reducedMotion ? "full" : "reduced"))}
+                    hint={appearance.reducedMotion ? "Reduced now" : "Full now"}
+                  >
+                    Motion: {appearance.reducedMotion ? "turn animations on" : "reduce animations"}
+                  </Item>
+                  <Item value="appearance settings panel" keywords={["theme", "customise", "customize"]} icon={SlidersHorizontal} onSelect={() => run(() => openAppearancePanel())} hint="Ctrl/⌘ ⇧ L cycles">
+                    Appearance settings…
+                  </Item>
+                </Command.Group>
+
                 <Command.Group heading="Monitored districts" className={groupCls}>
                   {districts.isLoading && <div className="px-3 py-2 text-xs text-slate-500">Loading live district risk…</div>}
                   {districts.data?.map((d) => {
@@ -222,9 +276,6 @@ export default function CommandPalette({ open, onOpenChange }: { open: boolean; 
                 </Command.Group>
 
                 <Command.Group heading="Preferences" className={groupCls}>
-                  <Item value="toggle theme dark light" icon={Moon} onSelect={() => run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))} hint={resolvedTheme === "dark" ? "Dark" : "Light"}>
-                    Toggle theme
-                  </Item>
                   <Item
                     value="copy link to this page"
                     icon={Link2}

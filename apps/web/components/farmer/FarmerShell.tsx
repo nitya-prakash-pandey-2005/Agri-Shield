@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useRealtime } from "@/hooks/useRealtime";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { LiveDot, riskColor } from "@/components/hud";
 
 const BASE = "/dashboard/farmer";
@@ -96,7 +97,7 @@ export function FarmerShell({ children }: { children: ReactNode }) {
   const overall = risk.data?.overall.score;
 
   return (
-    <div className="min-h-screen hud-bg text-slate-200" style={{ ["--hud-accent" as string]: "16 185 129" }}>
+    <div className="min-h-screen hud-bg text-slate-200" style={{ ["--hud-accent" as string]: "var(--user-accent, 16 185 129)" }}>
       {/* Top bar */}
       <header className="sticky top-0 z-[1100] border-b border-white/5 bg-[#060a16]/85 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
         <div className="flex h-14 items-center gap-3 px-3 sm:px-4">
@@ -125,6 +126,7 @@ export function FarmerShell({ children }: { children: ReactNode }) {
               </span>
             )}
             <LiveDot className="hidden sm:inline-flex" label={t("common.live").toUpperCase()} />
+            <ThemeToggle compact />
             <LanguageSwitcher />
             <Link href={`${BASE}/profile`} className={cn("grid h-9 w-9 place-items-center rounded-full lg:hidden", pathname.startsWith(`${BASE}/profile`) ? "bg-emerald-500 text-slate-950" : "bg-white/5 text-slate-300")} aria-label={t("nav.profile")}>
               {name ? <span className="text-xs font-semibold">{name[0]}</span> : <User size={16} />}

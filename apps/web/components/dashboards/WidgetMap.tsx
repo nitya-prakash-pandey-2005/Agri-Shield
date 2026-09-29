@@ -8,6 +8,8 @@
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import type * as Leaflet from "leaflet";
+import { useTheme } from "next-themes";
+import { canvasTiles } from "@/components/maps/BaseMap";
 import type { MapData } from "@/server/services/widget-data";
 import { fmtValue } from "./format";
 
@@ -32,6 +34,19 @@ export default function WidgetMap({ data, interactive = true, linkAssets = true 
   const mapRef = useRef<Leaflet.Map | null>(null);
   const layerRef = useRef<Leaflet.LayerGroup | null>(null);
   const LRef = useRef<typeof Leaflet | null>(null);
+  const tilesRef = useRef<Leaflet.TileLayer[]>([]);
+  // Daylight theme swaps the dark canvas for the light-grey one, live
+  const { resolvedTheme } = useTheme();
+  const light = resolvedTheme === "light";
+  const lightRef = useRef(light);
+  lightRef.current = light;
+  useEffect(() => {
+    const [base, labels] = tilesRef.current;
+    if (!base || !labels) return;
+    const canvas = canvasTiles(light);
+    base.setUrl(canvas.base);
+    labels.setUrl(canvas.labels);
+  }, [light]);
 
   useEffect(() => {
     let disposed = false;
@@ -42,8 +57,11 @@ export default function WidgetMap({ data, interactive = true, linkAssets = true 
       LRef.current = L;
       const map = L.map(el.current, { center: data.center ?? [20, 90], zoom: 6, zoomControl: interactive, attributionControl: true, preferCanvas: true, scrollWheelZoom: false, dragging: interactive });
       mapRef.current = map;
-      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxNativeZoom: 16, maxZoom: 18, crossOrigin: "anonymous", attribution: "Esri" }).addTo(map);
-      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxNativeZoom: 16, maxZoom: 18, crossOrigin: "anonymous", pane: "shadowPane" }).addTo(map);
+      const canvas = canvasTiles(lightRef.current);
+      tilesRef.current = [
+        L.tileLayer(canvas.base, { maxNativeZoom: 16, maxZoom: 18, crossOrigin: "anonymous", attribution: "Esri" }).addTo(map),
+        L.tileLayer(canvas.labels, { maxNativeZoom: 16, maxZoom: 18, crossOrigin: "anonymous", pane: "shadowPane" }).addTo(map),
+      ];
       layerRef.current = L.layerGroup().addTo(map);
       ro = new ResizeObserver(() => map.invalidateSize({ pan: false }));
       ro.observe(el.current);

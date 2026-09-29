@@ -75,7 +75,8 @@ export function GlobeStage() {
   const detail = card ? byId.get(card.id) : undefined;
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[640px] select-none">
+    // theme-island + space-stage: the globe stays space-dark in every theme (see app/themes.css)
+    <div className="theme-island space-stage relative mx-auto aspect-square w-full max-w-[640px] select-none">
       {/* static layer: reduced-motion view + loading state */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${useGl ? "opacity-0" : "opacity-100"}`} aria-hidden={useGl ? true : undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element */}

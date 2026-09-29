@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import "./themes.css";
 import { Providers } from "./providers";
 import { Toaster } from "sonner";
 import { PwaManager } from "@/components/pwa/PwaManager";
 import { CommandPaletteHost } from "@/components/command/CommandPaletteHost";
+import { APPEARANCE_BOOT_SCRIPT } from "@/components/theme/boot";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 const display = Space_Grotesk({ subsets: ["latin"], display: "swap", variable: "--font-display", weight: ["500", "600", "700"] });
@@ -91,6 +93,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${display.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
+        {/* Appearance boot: Solar Auto / accent / motion applied before first paint (no flash) */}
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

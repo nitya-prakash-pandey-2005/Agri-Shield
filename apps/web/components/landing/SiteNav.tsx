@@ -11,6 +11,7 @@ import { homeForRole } from "@/lib/rbac";
 import { openCommandPalette } from "@/components/command/CommandPaletteHost";
 import { cn } from "@/lib/utils";
 import { LogoMark, Wordmark } from "./Logo";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const LINKS = [
   { href: "/#platform", label: "Platform" },
@@ -108,6 +109,7 @@ export function SiteNav() {
           })}
         </ul>
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             onClick={openCommandPalette}

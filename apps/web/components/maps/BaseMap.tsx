@@ -3,6 +3,7 @@
 /**
  * Shared Leaflet base map with free basemaps + satellite overlays (no keys):
  *   dark      — Esri World Dark Gray canvas + reference labels
+ *               (Daylight theme: Esri World Light Gray canvas + labels, switched live)
  *   satellite — Esri World Imagery
  *   modis     — NASA GIBS MODIS Terra true colour (yesterday)
  *   ndvi      — NASA GIBS MODIS Terra 8-day NDVI
@@ -15,6 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import type * as Leaflet from "leaflet";
+import { useTheme } from "next-themes";
 
 export type Basemap = "dark" | "satellite" | "modis" | "ndvi";
 
@@ -47,6 +49,13 @@ export const BASEMAPS: Record<Basemap, { label: string; url: string; attribution
 };
 
 const DARK_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+export const LIGHT_BASE = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+export const LIGHT_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+
+/** Canvas basemap + label URLs for the painted theme (Daylight gets the light-grey canvas). */
+export function canvasTiles(light: boolean): { base: string; labels: string } {
+  return light ? { base: LIGHT_BASE, labels: LIGHT_LABELS } : { base: BASEMAPS.dark.url, labels: DARK_LABELS };
+}
 
 export const RAIN_OVERLAY = {
   url: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate/default/${gibsDate(1)}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png`,
@@ -76,6 +85,10 @@ export default function BaseMap({
   const LRef = useRef<typeof Leaflet | null>(null);
   const [current, setCurrent] = useState<Basemap>(basemap);
   useEffect(() => setCurrent(basemap), [basemap]);
+  const { resolvedTheme } = useTheme();
+  const light = resolvedTheme === "light";
+  const lightRef = useRef(light);
+  lightRef.current = light;
 
   useEffect(() => {
     let cleanup: void | (() => void);
@@ -88,8 +101,9 @@ export default function BaseMap({
       const map = L.map(el.current, { center, zoom, zoomControl: true, attributionControl: true, preferCanvas: true });
       mapRef.current = map;
       const b = BASEMAPS[current];
-      tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
-      if (current === "dark") labelRef.current = L.tileLayer(DARK_LABELS, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
+      const canvas = canvasTiles(lightRef.current);
+      tileRef.current = L.tileLayer(current === "dark" ? canvas.base : b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
+      if (current === "dark") labelRef.current = L.tileLayer(canvas.labels, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
       L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
       // Keep Leaflet in sync with layout changes (drawers, tabs, responsive grids)
       resizeObs = new ResizeObserver(() => map.invalidateSize({ pan: false }));
@@ -119,10 +133,11 @@ export default function BaseMap({
     labelRef.current?.remove();
     labelRef.current = null;
     const b = BASEMAPS[current];
-    tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
+    const canvas = canvasTiles(light);
+    tileRef.current = L.tileLayer(current === "dark" ? canvas.base : b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
     tileRef.current.bringToBack();
-    if (current === "dark") labelRef.current = L.tileLayer(DARK_LABELS, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
-  }, [current]);
+    if (current === "dark") labelRef.current = L.tileLayer(canvas.labels, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
+  }, [current, light]);
 
   return (
     <div className={className ?? "relative h-full w-full"}>
@@ -135,7 +150,7 @@ export default function BaseMap({
               onClick={() => setCurrent(k)}
               className={`rounded-md px-2 py-1 text-[10px] telemetry uppercase tracking-wider ${current === k ? "bg-emerald-500 text-slate-950" : "text-slate-400 hover:text-white"}`}
             >
-              {BASEMAPS[k].label}
+              {k === "dark" && light ? "Light" : BASEMAPS[k].label}
             </button>
           ))}
         </div>

@@ -3,10 +3,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchStreamLink, loggerLink, TRPCClientError } from "@trpc/client";
 import { SessionProvider } from "next-auth/react";
-import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import superjson from "superjson";
 import { trpc } from "@/lib/trpc";
+import { AppThemeProvider } from "@/components/theme/ThemeProvider";
 
 /** 4xx answers the UI handles itself (sign-in required, onboarding, forbidden, rate limit…). */
 const EXPECTED = new Set(["UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND", "PRECONDITION_FAILED", "TOO_MANY_REQUESTS", "BAD_REQUEST", "CONFLICT"]);
@@ -46,11 +46,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider refetchOnWindowFocus={false}>
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange={false}>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-        </trpc.Provider>
-      </ThemeProvider>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          {/* Appearance: themes, Solar Auto, accent, motion (components/theme) */}
+          <AppThemeProvider>{children}</AppThemeProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
     </SessionProvider>
   );
 }

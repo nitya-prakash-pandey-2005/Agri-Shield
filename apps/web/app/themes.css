@@ -1,0 +1,1393 @@
+/* ============================================================================
+   AGRI-SHIELD THEMES — token + remap layer
+   ----------------------------------------------------------------------------
+   The product UI was built dark-first ("Mission Control") with hard-coded
+   utilities (text-white, text-slate-400, bg-[#060a16]/85, border-white/10 …).
+   Instead of rewriting ~260 components, every other theme is produced here:
+
+     1. TOKENS   — each theme defines the same set of CSS custom properties
+                   (--t-ink-*, --t-page, --t-panel, --t-line …) as "r g b" triplets.
+     2. REMAP    — the dark utilities used in the codebase are re-pointed at those
+                   tokens, but only under :root.light / .midnight / .contrast.
+                   Mission Control (html.dark) is never touched, so it stays
+                   pixel-identical.
+     3. SAFETY   — contrast clamps (text fill + icon stroke) catch colours that are
+                   set inline (risk colours, chart legends), so Daylight never shows
+                   pale text on white and High Contrast never shows dim text.
+     4. ISLANDS  — `.theme-island` restores Mission Control tokens for content that
+                   is dark by design (3D Earth Twin, space globe, phone mock-ups).
+                   `.theme-raw` only opts an element out of the contrast clamps.
+
+   Coverage of the remap is enforced by tests/theme-coverage.test.ts: if a new
+   dark utility appears in the code without a remap, the test fails.
+   Author: Nitya Prakash Pandey
+   ========================================================================== */
+
+/* ── 1. Tokens ────────────────────────────────────────────────────────────── */
+
+/* Daylight — paper-white, slate ink, soft shadows */
+:root.light {
+  color-scheme: light;
+  --t-ink-0: 11 18 32;
+  --t-ink-1: 15 23 42;
+  --t-ink-2: 30 41 59;
+  --t-ink-3: 51 65 85;
+  --t-ink-4: 71 85 105;
+  --t-ink-5: 83 96 115;
+  --t-ink-6: 92 104 122;
+  --t-ink-7: 148 163 184;
+  --t-page: 243 245 249;
+  --t-panel: 255 255 255;
+  --t-well: 238 242 247;
+  --t-raised: 241 245 249;
+  --t-muted: 226 232 240;
+  --t-strong: 203 213 225;
+  --t-stronger: 148 163 184;
+  --t-tint: 15 23 42;
+  --t-tint-k: 1;
+  --t-well-k: 0.22;
+  --t-scrim: 15 23 42;
+  --t-scrim-k: 0.6;
+  --t-line: 15 23 42;
+  --t-line-k: 1.15;
+  --t-edge-1: 226 232 240;
+  --t-edge-2: 208 216 227;
+  --t-edge-3: 176 189 206;
+  --t-edge-4: 148 163 184;
+  --t-edge-min: 0;
+  --t-solid: 0;
+  --t-label: 83 96 115;
+  --t-panel-bg: linear-gradient(180deg, #ffffff, #fbfcfe);
+  --t-panel-border: rgb(15 23 42 / 0.09);
+  --t-panel-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 10px 28px -14px rgb(15 23 42 / 0.2);
+  --t-panel-blur: none;
+  --t-bracket-alpha: 0.5;
+  --t-meter-glow: 0px;
+  --t-shadow-glow: 0 1px 2px rgb(15 23 42 / 0.1), 0 6px 16px -8px rgb(15 23 42 / 0.28);
+  --t-hud-bg-color: #f3f5f9;
+  --t-hud-bg-image:
+    radial-gradient(1200px 600px at 10% -10%, rgb(16 185 129 / 0.07), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgb(14 165 233 / 0.06), transparent 60%),
+    linear-gradient(rgb(15 23 42 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 23 42 / 0.045) 1px, transparent 1px);
+  --t-scan: rgb(15 23 42 / 0.025);
+  --t-selection: rgb(16 185 129 / 0.22);
+  --t-scrollbar: rgb(15 23 42 / 0.22);
+  --t-accent-text: 4 120 87;
+}
+
+/* Midnight OLED — true black, brighter ink, almost no glow */
+:root.midnight {
+  color-scheme: dark;
+  --t-ink-0: 255 255 255;
+  --t-ink-1: 245 247 250;
+  --t-ink-2: 232 236 242;
+  --t-ink-3: 214 221 230;
+  --t-ink-4: 180 191 206;
+  --t-ink-5: 152 165 183;
+  --t-ink-6: 124 137 156;
+  --t-ink-7: 86 98 116;
+  --t-page: 0 0 0;
+  --t-panel: 6 7 9;
+  --t-well: 0 0 0;
+  --t-raised: 13 14 17;
+  --t-muted: 25 27 32;
+  --t-strong: 42 45 52;
+  --t-stronger: 70 74 84;
+  --t-tint: 255 255 255;
+  --t-tint-k: 1;
+  --t-well-k: 1;
+  --t-scrim: 0 0 0;
+  --t-scrim-k: 1.1;
+  --t-line: 255 255 255;
+  --t-line-k: 1.1;
+  --t-edge-1: 30 32 38;
+  --t-edge-2: 44 47 54;
+  --t-edge-3: 64 68 78;
+  --t-edge-4: 100 106 118;
+  --t-edge-min: 0;
+  --t-solid: 0;
+  --t-label: 160 172 190;
+  --t-panel-bg: #050608;
+  --t-panel-border: rgb(255 255 255 / 0.09);
+  --t-panel-shadow: none;
+  --t-panel-blur: none;
+  --t-bracket-alpha: 0.55;
+  --t-meter-glow: 4px;
+  --t-shadow-glow: none;
+  --t-hud-bg-color: #000;
+  --t-hud-bg-image:
+    linear-gradient(rgb(255 255 255 / 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.028) 1px, transparent 1px);
+  --t-scan: rgb(255 255 255 / 0.015);
+  --t-selection: rgb(52 211 153 / 0.35);
+  --t-scrollbar: rgb(255 255 255 / 0.16);
+  --t-accent-text: 52 211 153;
+}
+
+/* High Contrast — near-black, pure white ink, opaque surfaces, yellow focus */
+:root.contrast {
+  color-scheme: dark;
+  --t-ink-0: 255 255 255;
+  --t-ink-1: 255 255 255;
+  --t-ink-2: 255 255 255;
+  --t-ink-3: 250 250 250;
+  --t-ink-4: 242 242 242;
+  --t-ink-5: 235 235 235;
+  --t-ink-6: 225 225 225;
+  --t-ink-7: 200 200 200;
+  --t-page: 0 0 0;
+  --t-panel: 0 0 0;
+  --t-well: 0 0 0;
+  --t-raised: 12 12 12;
+  --t-muted: 40 40 40;
+  --t-strong: 72 72 72;
+  --t-stronger: 150 150 150;
+  --t-tint: 255 255 255;
+  --t-tint-k: 1.6;
+  --t-well-k: 0;
+  --t-scrim: 0 0 0;
+  --t-scrim-k: 1.4;
+  --t-line: 255 255 255;
+  --t-line-k: 7;
+  --t-edge-1: 215 215 215;
+  --t-edge-2: 215 215 215;
+  --t-edge-3: 235 235 235;
+  --t-edge-4: 255 255 255;
+  --t-edge-min: 0.85;
+  --t-solid: 1;
+  --t-label: 240 240 240;
+  --t-panel-bg: #000;
+  --t-panel-border: rgb(255 255 255 / 0.75);
+  --t-panel-shadow: none;
+  --t-panel-blur: none;
+  --t-bracket-alpha: 1;
+  --t-meter-glow: 0px;
+  --t-shadow-glow: none;
+  --t-hud-bg-color: #000;
+  --t-hud-bg-image: none;
+  --t-scan: transparent;
+  --t-selection: #ffd400;
+  --t-scrollbar: rgb(255 255 255 / 0.6);
+  --t-accent-text: 110 231 183;
+}
+
+/* Islands: content that is dark by design keeps Mission Control inside any theme */
+:root:is(.light, .midnight, .contrast) .theme-island {
+  color-scheme: dark;
+  --t-ink-0: 255 255 255;
+  --t-ink-1: 241 245 249;
+  --t-ink-2: 226 232 240;
+  --t-ink-3: 203 213 225;
+  --t-ink-4: 148 163 184;
+  --t-ink-5: 100 116 139;
+  --t-ink-6: 71 85 105;
+  --t-ink-7: 51 65 85;
+  --t-page: 6 10 22;
+  --t-panel: 7 12 26;
+  --t-well: 2 6 23;
+  --t-raised: 15 23 42;
+  --t-muted: 30 41 59;
+  --t-strong: 51 65 85;
+  --t-stronger: 71 85 105;
+  --t-tint: 255 255 255;
+  --t-tint-k: 1;
+  --t-well-k: 1;
+  --t-scrim: 0 0 0;
+  --t-scrim-k: 1;
+  --t-line: 255 255 255;
+  --t-line-k: 1;
+  --t-edge-1: 30 41 59;
+  --t-edge-2: 51 65 85;
+  --t-edge-3: 71 85 105;
+  --t-edge-4: 100 116 139;
+  --t-edge-min: 0;
+  --t-solid: 0;
+  --t-label: 148 163 184;
+  --t-panel-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(10, 15, 30, 0.72));
+  --t-panel-border: rgba(148, 163, 184, 0.12);
+  --t-panel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+  --t-panel-blur: blur(14px);
+  --t-bracket-alpha: 0.7;
+  --t-meter-glow: 10px;
+  --t-scan: rgba(255, 255, 255, 0.025);
+  --t-accent-text: 52 211 153;
+  color: #e2e8f0;
+}
+
+/* ── 2. Utility remap (generated from the codebase — see header) ─────────── */
+
+:root:is(.light, .midnight, .contrast) .\!bg-\[\#070d1b\]\/95 {
+  background-color: rgb(var(--t-panel) / max(0.95, var(--t-solid))) !important;
+}
+:root:is(.light, .midnight, .contrast) .\!text-white {
+  color: rgb(var(--t-ink-0)) !important;
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#02050c\]\/70,
+:root:is(.light, .midnight, .contrast) .bg-\[\#030814\]\/70 {
+  background-color: rgb(var(--t-page) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#030814\]\/80,
+:root:is(.light, .midnight, .contrast) .bg-\[\#040913\]\/80,
+:root:is(.light, .midnight, .contrast) .bg-\[\#050a14\]\/80,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/80 {
+  background-color: rgb(var(--t-page) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#050914\]\/85,
+:root:is(.light, .midnight, .contrast) .bg-\[\#050a14\]\/85,
+:root:is(.light, .midnight, .contrast) .bg-\[\#050a16\]\/85,
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b18\]\/85,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/85 {
+  background-color: rgb(var(--t-page) / max(0.85, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#050914\]\/90,
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b18\]\/90,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/90 {
+  background-color: rgb(var(--t-page) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b18\]\/50,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/50 {
+  background-color: rgb(var(--t-page) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b18\]\/92,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/92 {
+  background-color: rgb(var(--t-page) / max(0.92, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/60 {
+  background-color: rgb(var(--t-page) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/95 {
+  background-color: rgb(var(--t-page) / max(0.95, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060a16\]\/97 {
+  background-color: rgb(var(--t-page) / max(0.97, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060c19\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#060c1a\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#070c1a\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#070d1c\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#07101f\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#07111f\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#081022\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#081225\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a0f1e\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a1120\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a1122\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a1324\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a1426\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1020\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1120\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1224\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1325\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1426\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#1e293b\] {
+  background-color: rgb(var(--t-panel));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060c1c\]\/80,
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1224\]\/80 {
+  background-color: rgb(var(--t-panel) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#060c1c\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#060d1c\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#070c1a\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#070d1c\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#07101f\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#081022\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#0a1122\]\/95,
+:root:is(.light, .midnight, .contrast) .bg-\[\#0c0f18\]\/95 {
+  background-color: rgb(var(--t-panel) / max(0.95, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#06101f\]\/90,
+:root:is(.light, .midnight, .contrast) .bg-\[\#070d1c\]\/90,
+:root:is(.light, .midnight, .contrast) .bg-\[\#081022\]\/90 {
+  background-color: rgb(var(--t-panel) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#070c1a\]\/70 {
+  background-color: rgb(var(--t-panel) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#070c1a\]\/97,
+:root:is(.light, .midnight, .contrast) .bg-\[\#070f22\]\/97 {
+  background-color: rgb(var(--t-panel) / max(0.97, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/20 {
+  background-color: rgb(var(--t-tint) / calc(0.2 * var(--t-well-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/25 {
+  background-color: rgb(var(--t-tint) / calc(0.25 * var(--t-well-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/30 {
+  background-color: rgb(var(--t-tint) / calc(0.3 * var(--t-well-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/40 {
+  background-color: rgb(var(--t-tint) / calc(0.4 * var(--t-well-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/50 {
+  background-color: rgb(var(--t-scrim) / calc(0.5 * var(--t-scrim-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/60 {
+  background-color: rgb(var(--t-scrim) / calc(0.6 * var(--t-scrim-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/65 {
+  background-color: rgb(var(--t-scrim) / calc(0.65 * var(--t-scrim-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-black\/70 {
+  background-color: rgb(var(--t-scrim) / calc(0.7 * var(--t-scrim-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600 {
+  background-color: rgb(var(--t-stronger));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/20 {
+  background-color: rgb(var(--t-stronger) / max(0.2, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/30 {
+  background-color: rgb(var(--t-stronger) / max(0.3, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/40 {
+  background-color: rgb(var(--t-stronger) / max(0.4, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/50 {
+  background-color: rgb(var(--t-stronger) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/60 {
+  background-color: rgb(var(--t-stronger) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/70 {
+  background-color: rgb(var(--t-stronger) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/80 {
+  background-color: rgb(var(--t-stronger) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-600\/90 {
+  background-color: rgb(var(--t-stronger) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700 {
+  background-color: rgb(var(--t-strong));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/20 {
+  background-color: rgb(var(--t-strong) / max(0.2, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/30 {
+  background-color: rgb(var(--t-strong) / max(0.3, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/40 {
+  background-color: rgb(var(--t-strong) / max(0.4, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/50 {
+  background-color: rgb(var(--t-strong) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/60 {
+  background-color: rgb(var(--t-strong) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/70 {
+  background-color: rgb(var(--t-strong) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/80 {
+  background-color: rgb(var(--t-strong) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-700\/90 {
+  background-color: rgb(var(--t-strong) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/85 {
+  background-color: rgb(var(--t-well) / max(0.85, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .border-\[\#050a14\],
+:root:is(.light, .midnight, .contrast) .border-\[\#050a16\] {
+  border-color: rgb(var(--t-page));
+}
+:root:is(.light, .midnight, .contrast) .border-\[\#070d1c\] {
+  border-color: rgb(var(--t-panel));
+}
+:root:is(.light, .midnight, .contrast) .border-l-slate-700 {
+  border-left-color: rgb(var(--t-edge-2));
+}
+:root:is(.light, .midnight, .contrast) .decoration-slate-500 {
+  text-decoration-color: rgb(var(--t-ink-5));
+}
+:root:is(.light, .midnight, .contrast) .decoration-slate-600 {
+  text-decoration-color: rgb(var(--t-ink-6));
+}
+:root:is(.light, .midnight, .contrast) .fill-\[\#081022\] {
+  fill: rgb(var(--t-panel));
+}
+:root:is(.light, .midnight, .contrast) .from-\[\#01040c\],
+:root:is(.light, .midnight, .contrast) .from-\[\#030814\] {
+  --tw-gradient-from: rgb(var(--t-page)) var(--tw-gradient-from-position);
+}
+:root:is(.light, .midnight, .contrast) .from-slate-600 {
+  --tw-gradient-from: rgb(var(--t-stronger)) var(--tw-gradient-from-position);
+}
+:root:is(.light, .midnight, .contrast) .from-slate-800 {
+  --tw-gradient-from: rgb(var(--t-muted)) var(--tw-gradient-from-position);
+}
+:root:is(.light, .midnight, .contrast) .from-slate-900 {
+  --tw-gradient-from: rgb(var(--t-raised)) var(--tw-gradient-from-position);
+}
+@media (min-width: 1024px) {
+:root:is(.light, .midnight, .contrast) .lg\:from-\[\#01040c\] {
+  --tw-gradient-from: rgb(var(--t-page)) var(--tw-gradient-from-position);
+}
+}
+@media (min-width: 1024px) {
+:root:is(.light, .midnight, .contrast) .lg\:via-\[\#01040c\]\/80 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--t-page) / 0.8) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+}
+:root:is(.light, .midnight, .contrast) .ring-\[\#060b18\] {
+  --tw-ring-color: rgb(var(--t-page));
+}
+:root:is(.light, .midnight, .contrast) .ring-offset-\[\#050914\] {
+  --tw-ring-offset-color: rgb(var(--t-page));
+}
+:root:is(.light, .midnight, .contrast) .ring-offset-\[\#0a1020\] {
+  --tw-ring-offset-color: rgb(var(--t-panel));
+}
+:root:is(.light, .midnight, .contrast) .ring-white\/15 {
+  --tw-ring-color: rgb(var(--t-line) / min(1, calc(0.15 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .to-slate-950 {
+  --tw-gradient-to: rgb(var(--t-page)) var(--tw-gradient-to-position);
+}
+:root:is(.light, .midnight, .contrast) .via-\[\#01040c\]\/70 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--t-page) / 0.7) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+:root:is(.light, .midnight, .contrast) .via-slate-700\/30 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--t-strong) / 0.3) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+:root:is(.light, .midnight, .contrast) .via-slate-950\/40 {
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--t-page) / 0.4) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+:root:is(.light, .midnight, .contrast) .\[\&_\[cmdk-group-heading\]\]\:text-slate-500 [cmdk-group-heading],
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-500:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-500,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-500:hover,
+:root:is(.light, .midnight, .contrast) .marker\:text-slate-500 ::marker,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-500::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-500 {
+  color: rgb(var(--t-ink-5));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#01040c\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#040810\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#040811\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#040913\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#040914\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#050914\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#050a14\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b16\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#050b18\],
+:root:is(.light, .midnight, .contrast) .bg-\[\#060b17\],
+:root:is(.light, .midnight, .contrast) .bg-slate-950,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950:hover {
+  background-color: rgb(var(--t-page));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1a33\]\/40,
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/40,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/40:hover {
+  background-color: rgb(var(--t-raised) / max(0.4, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1a33\]\/50,
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/50,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/50:hover {
+  background-color: rgb(var(--t-raised) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-\[\#0b1a33\]\/60,
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/60,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/60:hover {
+  background-color: rgb(var(--t-raised) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800:hover {
+  background-color: rgb(var(--t-muted));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/20,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/20:hover {
+  background-color: rgb(var(--t-muted) / max(0.2, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/30,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/30:hover {
+  background-color: rgb(var(--t-muted) / max(0.3, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/40,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/40:hover {
+  background-color: rgb(var(--t-muted) / max(0.4, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/50,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/50:hover {
+  background-color: rgb(var(--t-muted) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/60,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/60:hover {
+  background-color: rgb(var(--t-muted) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/70,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/70:hover {
+  background-color: rgb(var(--t-muted) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/80,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/80:hover {
+  background-color: rgb(var(--t-muted) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-800\/90,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-800\/90:hover {
+  background-color: rgb(var(--t-muted) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900:hover {
+  background-color: rgb(var(--t-raised));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/20,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/20:hover {
+  background-color: rgb(var(--t-raised) / max(0.2, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/30,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/30:hover {
+  background-color: rgb(var(--t-raised) / max(0.3, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/70,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/70:hover {
+  background-color: rgb(var(--t-raised) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/80,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/80:hover {
+  background-color: rgb(var(--t-raised) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-900\/90,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-900\/90:hover {
+  background-color: rgb(var(--t-raised) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/20,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/20:hover {
+  background-color: rgb(var(--t-well) / max(0.2, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/30,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/30:hover {
+  background-color: rgb(var(--t-well) / max(0.3, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/40,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/40:hover {
+  background-color: rgb(var(--t-well) / max(0.4, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/50,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/50:hover {
+  background-color: rgb(var(--t-well) / max(0.5, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/60,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/60:hover {
+  background-color: rgb(var(--t-well) / max(0.6, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/70,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/70:hover {
+  background-color: rgb(var(--t-well) / max(0.7, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/80,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/80:hover {
+  background-color: rgb(var(--t-well) / max(0.8, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-slate-950\/90,
+:root:is(.light, .midnight, .contrast) .hover\:bg-slate-950\/90:hover {
+  background-color: rgb(var(--t-well) / max(0.9, var(--t-solid)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/10,
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.1\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/10:hover,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.1\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.1 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/15,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/15:hover {
+  background-color: rgb(var(--t-tint) / calc(0.15 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/20,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/20:hover {
+  background-color: rgb(var(--t-tint) / calc(0.2 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/25,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/25:hover {
+  background-color: rgb(var(--t-tint) / calc(0.25 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/30,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/30:hover {
+  background-color: rgb(var(--t-tint) / calc(0.3 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/5,
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.05\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/5:hover,
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.05 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.015\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.015\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.015 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.01\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.01\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.01 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.025\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.025\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.025 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.02\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.02\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.02 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.03\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.03 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.04\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.04 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.06\],
+:root:is(.light, .midnight, .contrast) .group:focus-visible .group-focus-visible\:bg-white\/\[0\.06\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.06 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.07\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.07\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.07 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.08\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.08 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.09\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.09\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.09 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .bg-white\/\[0\.12\],
+:root:is(.light, .midnight, .contrast) .hover\:bg-white\/\[0\.12\]:hover {
+  background-color: rgb(var(--t-tint) / calc(0.12 * var(--t-tint-k)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-400:hover,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500:hover {
+  border-color: rgb(var(--t-edge-4));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500\/40,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500\/40:hover {
+  border-color: rgb(var(--t-edge-4) / max(0.4, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500\/50,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500\/50:hover {
+  border-color: rgb(var(--t-edge-4) / max(0.5, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500\/60,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500\/60:hover {
+  border-color: rgb(var(--t-edge-4) / max(0.6, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500\/70,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500\/70:hover {
+  border-color: rgb(var(--t-edge-4) / max(0.7, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-500\/80,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-500\/80:hover {
+  border-color: rgb(var(--t-edge-4) / max(0.8, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600:hover {
+  border-color: rgb(var(--t-edge-3));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600\/40,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600\/40:hover {
+  border-color: rgb(var(--t-edge-3) / max(0.4, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600\/50,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600\/50:hover {
+  border-color: rgb(var(--t-edge-3) / max(0.5, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600\/60,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600\/60:hover {
+  border-color: rgb(var(--t-edge-3) / max(0.6, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600\/70,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600\/70:hover {
+  border-color: rgb(var(--t-edge-3) / max(0.7, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-600\/80,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-600\/80:hover {
+  border-color: rgb(var(--t-edge-3) / max(0.8, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700:hover {
+  border-color: rgb(var(--t-edge-2));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700\/40,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700\/40:hover {
+  border-color: rgb(var(--t-edge-2) / max(0.4, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700\/50,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700\/50:hover {
+  border-color: rgb(var(--t-edge-2) / max(0.5, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700\/60,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700\/60:hover {
+  border-color: rgb(var(--t-edge-2) / max(0.6, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700\/70,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700\/70:hover {
+  border-color: rgb(var(--t-edge-2) / max(0.7, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-700\/80,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-700\/80:hover {
+  border-color: rgb(var(--t-edge-2) / max(0.8, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800:hover {
+  border-color: rgb(var(--t-edge-1));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800\/40,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800\/40:hover {
+  border-color: rgb(var(--t-edge-1) / max(0.4, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800\/50,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800\/50:hover {
+  border-color: rgb(var(--t-edge-1) / max(0.5, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800\/60,
+:root:is(.light, .midnight, .contrast) .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800\/60:hover {
+  border-color: rgb(var(--t-edge-1) / max(0.6, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800\/70,
+:root:is(.light, .midnight, .contrast) .divide-slate-800\/70 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800\/70:hover {
+  border-color: rgb(var(--t-edge-1) / max(0.7, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-slate-800\/80,
+:root:is(.light, .midnight, .contrast) .hover\:border-slate-800\/80:hover {
+  border-color: rgb(var(--t-edge-1) / max(0.8, var(--t-edge-min)));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/10,
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.1\],
+:root:is(.light, .midnight, .contrast) .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.1\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/10:hover,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.1\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.1 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/15,
+:root:is(.light, .midnight, .contrast) .divide-white\/15 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/15:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.15 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/20,
+:root:is(.light, .midnight, .contrast) .divide-white\/20 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .focus-within\:border-white\/20:focus-within,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/20:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.2 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/25,
+:root:is(.light, .midnight, .contrast) .divide-white\/25 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/25:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.25 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/30,
+:root:is(.light, .midnight, .contrast) .divide-white\/30 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/30:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.3 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/35,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/35:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.35 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/40,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/40:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.4 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/5,
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.05\],
+:root:is(.light, .midnight, .contrast) .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.05\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/5:hover,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.05\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.05 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/50,
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/50:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.5 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.015\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.015\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.015\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.015 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.01\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.01\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.01\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.01 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.025\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.025\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.025\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.025 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.02\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.02\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.02\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.02 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.03\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.03\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.03\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.03 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.04\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.04\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.04\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.04 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.06\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.06\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.06 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.07\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.07\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.07\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.07 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.08\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.08\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.08\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.08 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.09\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.09\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.09\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.09 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .border-white\/\[0\.12\],
+:root:is(.light, .midnight, .contrast) .divide-white\/\[0\.12\] > :not([hidden]) ~ :not([hidden]),
+:root:is(.light, .midnight, .contrast) .hover\:border-white\/\[0\.12\]:hover {
+  border-color: rgb(var(--t-line) / min(1, calc(0.12 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .data-\[selected\=true\]\:text-white[data-selected="true"],
+:root:is(.light, .midnight, .contrast) .focus\:text-white:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-white,
+:root:is(.light, .midnight, .contrast) .hover\:text-white:hover,
+:root:is(.light, .midnight, .contrast) .text-white {
+  color: rgb(var(--t-ink-0));
+}
+:root:is(.light, .midnight, .contrast) .focus-visible\:ring-slate-500:focus-visible {
+  --tw-ring-color: rgb(var(--t-edge-4));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-100:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-100,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-100:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-100::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-100 {
+  color: rgb(var(--t-ink-1));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-200:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-200,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-200:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-200::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-200 {
+  color: rgb(var(--t-ink-2));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-300:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-300,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-300:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-300::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-300 {
+  color: rgb(var(--t-ink-3));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-400:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-400,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-400:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-400::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-400 {
+  color: rgb(var(--t-ink-4));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-600:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-600,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-600:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-600::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-600 {
+  color: rgb(var(--t-ink-6));
+}
+:root:is(.light, .midnight, .contrast) .focus\:text-slate-700:focus,
+:root:is(.light, .midnight, .contrast) .group:hover .group-hover\:text-slate-700,
+:root:is(.light, .midnight, .contrast) .hover\:text-slate-700:hover,
+:root:is(.light, .midnight, .contrast) .placeholder\:text-slate-700::placeholder,
+:root:is(.light, .midnight, .contrast) .text-slate-700 {
+  color: rgb(var(--t-ink-7));
+}
+:root:is(.light, .midnight, .contrast) .hover\:ring-white\/10:hover,
+:root:is(.light, .midnight, .contrast) .ring-white\/10 {
+  --tw-ring-color: rgb(var(--t-line) / min(1, calc(0.1 * var(--t-line-k))));
+}
+:root:is(.light, .midnight, .contrast) .hover\:ring-white\/40:hover {
+  --tw-ring-color: rgb(var(--t-line) / min(1, calc(0.4 * var(--t-line-k))));
+}
+
+/* ── 3. Shared surfaces & components ──────────────────────────────────────── */
+
+:root:is(.light, .midnight, .contrast) body {
+  background-color: rgb(var(--t-page));
+}
+
+:root:is(.light, .midnight, .contrast) .hud-bg {
+  background-color: var(--t-hud-bg-color);
+  background-image: var(--t-hud-bg-image);
+}
+
+:root:is(.light, .midnight, .contrast) .hud-panel {
+  background: var(--t-panel-bg);
+  border-color: var(--t-panel-border);
+  box-shadow: var(--t-panel-shadow);
+  -webkit-backdrop-filter: var(--t-panel-blur);
+  backdrop-filter: var(--t-panel-blur);
+}
+:root:is(.light, .midnight, .contrast) .hud-panel::before,
+:root:is(.light, .midnight, .contrast) .hud-panel::after {
+  border-color: rgb(var(--hud-accent, 34 197 94) / var(--t-bracket-alpha));
+}
+:root.contrast .hud-panel {
+  border-width: 1.5px;
+}
+:root.contrast .hud-panel::before,
+:root.contrast .hud-panel::after {
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+}
+
+:where(:root:is(.light, .midnight, .contrast)) .hud-label:not([class*="text-"]) {
+  color: rgb(var(--t-label));
+}
+:root:is(.light, .midnight, .contrast) .hud-divider {
+  background: linear-gradient(90deg, transparent, rgb(var(--t-line) / 0.2), transparent);
+}
+:root:is(.light, .midnight, .contrast) .scanlines {
+  background-image: repeating-linear-gradient(0deg, var(--t-scan) 0 1px, transparent 1px 3px);
+}
+:root.light .hud-sweep::after {
+  background: linear-gradient(180deg, transparent, rgb(16 185 129 / 0.05), transparent);
+}
+:root.contrast .hud-sweep::after {
+  display: none;
+}
+
+/* Glows: soft shadows on paper, whispers on OLED, none in High Contrast */
+:root.light :is(.glow-green, .glow-cyan, .glow-amber, .glow-red, .glow-blue) {
+  text-shadow: none;
+  box-shadow: none;
+}
+:root.midnight .glow-green { text-shadow: 0 0 8px rgb(34 197 94 / 0.3); }
+:root.midnight .glow-cyan { text-shadow: 0 0 8px rgb(56 189 248 / 0.3); }
+:root.midnight .glow-amber { text-shadow: 0 0 8px rgb(245 158 11 / 0.3); }
+:root.midnight .glow-red { text-shadow: 0 0 8px rgb(239 68 68 / 0.3); }
+:root.contrast :is(.glow-green, .glow-cyan, .glow-amber, .glow-red, .glow-blue) {
+  text-shadow: none;
+  box-shadow: none;
+}
+:root:is(.light, .midnight, .contrast) [class*="shadow-[0_0_"]:not(.theme-island *) {
+  --tw-shadow: var(--t-shadow-glow, 0 0 #0000);
+}
+:root.midnight [class*="shadow-[0_0_"]:not(.theme-island *),
+:root.contrast [class*="shadow-[0_0_"]:not(.theme-island *) {
+  --tw-shadow: 0 0 #0000;
+}
+
+/* Glass */
+:root.light .glass {
+  background: rgb(15 23 42 / 0.04);
+  border-color: rgb(15 23 42 / 0.08);
+}
+:root.light .glass-dark {
+  background: rgb(255 255 255 / 0.82);
+  border-color: rgb(15 23 42 / 0.08);
+}
+:root.midnight .glass-dark {
+  background: rgb(0 0 0 / 0.85);
+  border-color: rgb(255 255 255 / 0.08);
+}
+:root.contrast :is(.glass, .glass-dark) {
+  background: #000;
+  border-color: rgb(255 255 255 / 0.75);
+}
+
+/* Skeleton shimmer */
+:root.light .skeleton {
+  background: linear-gradient(90deg, rgb(15 23 42 / 0.05) 0%, rgb(15 23 42 / 0.1) 50%, rgb(15 23 42 / 0.05) 100%);
+  background-size: 200% 100%;
+}
+:root.midnight .skeleton {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.08) 50%, rgb(255 255 255 / 0.04) 100%);
+  background-size: 200% 100%;
+}
+:root.contrast .skeleton {
+  background: rgb(255 255 255 / 0.18);
+}
+
+/* Gradient text: deepen on paper so it keeps AA contrast */
+:root.light .gradient-text-hero {
+  background-image: linear-gradient(135deg, #0f172a 0%, #065f46 55%, #047857 100%);
+}
+/* Gradient text drawn with light stops (white → sky, amber → orange): a "smart invert"
+   keeps each hue but flips its lightness, so the gradient reads as deep ink on paper. */
+:root.light :is(.gradient-text, .gradient-text-amber, .bg-clip-text):not(.theme-island *) {
+  filter: invert(1) hue-rotate(180deg) saturate(1.3);
+}
+:root.contrast :is(.gradient-text, .gradient-text-amber, .gradient-text-hero, .bg-clip-text) {
+  background-image: none !important;
+  -webkit-text-fill-color: #fff !important;
+  color: #fff !important;
+}
+
+/* Public site (landing / pricing / docs) */
+:root:is(.light, .midnight, .contrast) .site-shell {
+  background-color: rgb(var(--t-page));
+  color: rgb(var(--t-ink-2));
+}
+:root:is(.light, .midnight, .contrast) .site-grid {
+  background-image:
+    linear-gradient(rgb(var(--t-line) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--t-line) / 0.06) 1px, transparent 1px);
+}
+:root.contrast .site-grid {
+  background-image: none;
+}
+:root:is(.light, .midnight, .contrast) .site-input {
+  background: rgb(var(--t-well) / max(0.6, var(--t-solid)));
+  border-color: rgb(var(--t-line) / min(1, calc(0.18 * var(--t-line-k))));
+  color: rgb(var(--t-ink-1));
+}
+:root.light .site-input {
+  background: #fff;
+}
+:root:is(.light, .midnight, .contrast) .site-input::placeholder {
+  color: rgb(var(--t-ink-6));
+}
+:root.light .gradient-hero {
+  background: linear-gradient(135deg, #f3f5f9 0%, #e7f6ee 30%, #e9f1fb 60%, #f3f5f9 100%);
+}
+:root:is(.midnight, .contrast) .gradient-hero {
+  background: #000;
+}
+:root:is(.light, .midnight, .contrast) .docs-prose { color: rgb(var(--t-ink-3)); }
+:root:is(.light, .midnight, .contrast) .docs-prose :is(h2, h3, strong) { color: rgb(var(--t-ink-0)); }
+:root:is(.light, .midnight, .contrast) .docs-prose a { color: rgb(var(--t-accent-text)); text-decoration-color: rgb(var(--t-accent-text) / 0.4); }
+:root:is(.light, .midnight, .contrast) .docs-prose code {
+  background: rgb(var(--t-tint) / 0.06);
+  border-color: rgb(var(--t-line) / 0.12);
+  color: rgb(var(--t-ink-2));
+}
+:root:is(.light, .midnight, .contrast) .docs-prose :is(blockquote, th) { color: rgb(var(--t-ink-4)); }
+:root:is(.light, .midnight, .contrast) .docs-prose :is(th, td) { border-bottom-color: rgb(var(--t-line) / 0.12); }
+:root:is(.light, .midnight, .contrast) .docs-prose hr { background: rgb(var(--t-line) / 0.15); }
+:root:is(.light, .midnight, .contrast) .docs-prose li::marker { color: rgb(var(--t-ink-6)); }
+
+/* One-off arbitrary gradient surfaces (bg-[linear-gradient(…)] etc.) */
+:root:is(.light, .midnight, .contrast) [class*="bg-[linear-gradient(180deg,#050a14,#060d1b"] {
+  background-image: linear-gradient(180deg, rgb(var(--t-page)), rgb(var(--t-raised)) 50%, rgb(var(--t-page)));
+}
+:root:is(.light, .midnight, .contrast) :is([class*="bg-[linear-gradient(180deg,rgba(15,23,42,0.6)"], [class*="bg-[linear-gradient(135deg,rgba(15,23,42,0.8)"]) {
+  background-image: linear-gradient(180deg, rgb(var(--t-panel)), rgb(var(--t-raised)));
+}
+:root:is(.light, .midnight, .contrast) [class*="bg-[linear-gradient(180deg,rgba(127,29,29"] {
+  background-image: linear-gradient(180deg, rgb(244 63 94 / 0.08), rgb(var(--t-panel)));
+}
+:root:is(.light, .midnight, .contrast) [class*="bg-[linear-gradient(180deg,rgba(6,78,59"] {
+  background-image: linear-gradient(180deg, rgb(16 185 129 / 0.1), rgb(var(--t-panel)));
+}
+:root:is(.light, .midnight, .contrast) [class*="bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(1,4,12"] {
+  background-image: radial-gradient(ellipse at center, transparent 45%, rgb(var(--t-page) / 0.85) 100%);
+}
+:root:is(.light, .midnight, .contrast) [class*="bg-[radial-gradient(circle_at_35%_35%,rgba(56,189,248,0.25),rgba(2,6,17"] {
+  background-image: radial-gradient(circle at 35% 35%, rgb(56 189 248 / 0.25), rgb(var(--t-well) / 0.9) 70%);
+}
+:root.light [class*="bg-[radial-gradient(120%_80%_at_50%_0%,#064e3b"] {
+  background-image: radial-gradient(120% 80% at 50% 0%, #d1fae5 0%, #f1f5f9 55%, #f3f5f9 100%);
+}
+:root:is(.midnight, .contrast) [class*="bg-[radial-gradient(120%_80%_at_50%_0%,#064e3b"] {
+  background-image: radial-gradient(120% 80% at 50% 0%, #022c22 0%, #000 60%);
+}
+:root.light [class*="bg-[radial-gradient(circle_at_40%_40%,#0d2238"] {
+  background-image: radial-gradient(circle at 40% 40%, #e6eef8, #d9e2ee);
+}
+
+/* Inline dark glass written as style={{ background: "rgba(15,23,42,…)" }} */
+:root:is(.light, .midnight, .contrast) :is([style*="background: rgba(15, 23, 42"], [style*="background:rgba(15,23,42"]) {
+  background-color: rgb(var(--t-raised) / max(0.7, var(--t-solid))) !important;
+}
+
+/* 3D / space scenes stay dark by design: Daylight frames them in a night-sky porthole */
+:root:is(.light, .midnight, .contrast) .space-stage {
+  isolation: isolate;
+}
+:root.light .space-stage::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  z-index: -1;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 50% 42%, #0e1d3b 0%, #060b18 58%, #050a14 70%);
+  box-shadow: 0 40px 80px -40px rgb(15 23 42 / 0.55), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+/* Code blocks */
+:root.light pre:not(.theme-island *) {
+  background-color: #f6f8fb;
+  border-color: rgb(15 23 42 / 0.1);
+}
+:root.contrast pre {
+  background-color: #000;
+  border: 1px solid rgb(255 255 255 / 0.7);
+}
+
+/* Native form controls: deeper accent-color on paper so Chrome draws a light track */
+:root.light .accent-cyan-400 { accent-color: #0891b2; }
+:root.light :is(.accent-sky-400, .accent-sky-500) { accent-color: #0284c7; }
+:root.light :is(.accent-emerald-400, .accent-emerald-500) { accent-color: #059669; }
+:root.light .accent-amber-500 { accent-color: #d97706; }
+:root.light .accent-pink-400 { accent-color: #db2777; }
+:root.light :is(.accent-violet-400, .accent-violet-500) { accent-color: #7c3aed; }
+
+/* ── 4. Leaflet (maps) ────────────────────────────────────────────────────── */
+:root:is(.light, .midnight, .contrast) .leaflet-container { background: rgb(var(--t-page)); }
+:root.light .leaflet-popup-content-wrapper,
+:root.light .leaflet-popup-tip {
+  background: rgb(255 255 255 / 0.97) !important;
+  color: #1e293b !important;
+  border: 1px solid rgb(15 23 42 / 0.1);
+  box-shadow: 0 12px 32px -12px rgb(15 23 42 / 0.35);
+}
+:root.light .leaflet-control-attribution {
+  background: rgb(255 255 255 / 0.8) !important;
+  color: #475569 !important;
+}
+:root.light .leaflet-control-attribution a { color: #334155 !important; }
+:root.light .leaflet-bar a {
+  background: #fff !important;
+  color: #1e293b !important;
+  border-color: rgb(15 23 42 / 0.12) !important;
+}
+:root.light .leaflet-bar { box-shadow: 0 1px 4px rgb(15 23 42 / 0.2); border-color: rgb(15 23 42 / 0.12); }
+:root.light .leaflet-control-scale-line {
+  background: rgb(255 255 255 / 0.85);
+  color: #334155;
+  border-color: #475569;
+}
+:root.light .leaflet-tooltip {
+  background: #fff;
+  color: #1e293b;
+  border-color: rgb(15 23 42 / 0.12);
+}
+:root.midnight .leaflet-container { background: #000; }
+:root.contrast .leaflet-popup-content-wrapper,
+:root.contrast .leaflet-popup-tip {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px solid #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root.contrast .leaflet-control-attribution { background: #000 !important; color: #fff !important; }
+:root.contrast .leaflet-control-attribution a { color: #fff !important; }
+:root.contrast .leaflet-control-scale-line { background: #000; color: #fff; border-color: #fff; }
+:root.contrast .leaflet-bar a { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+
+/* ── 5. Charts (Recharts + hand-rolled SVG) ───────────────────────────────── */
+:root:is(.light, .contrast) :is(.recharts-cartesian-grid line, .recharts-polar-grid :is(line, path, polygon, circle)) {
+  stroke: rgb(var(--t-line) / 0.1);
+}
+:root.contrast :is(.recharts-cartesian-grid line, .recharts-polar-grid :is(line, path, polygon, circle)) {
+  stroke: rgb(255 255 255 / 0.35);
+}
+:root:is(.light, .contrast) :is(.recharts-cartesian-axis-line, .recharts-cartesian-axis-tick-line) {
+  stroke: rgb(var(--t-line) / 0.25);
+}
+:root:is(.light, .midnight, .contrast) :is(.recharts-cartesian-axis-tick-value, .recharts-polar-angle-axis-tick-value, .recharts-polar-radius-axis-tick-value) {
+  fill: rgb(var(--t-ink-5));
+}
+:root:is(.light, .midnight, .contrast) .recharts-default-tooltip {
+  background: rgb(var(--t-panel)) !important;
+  border: 1px solid rgb(var(--t-line) / min(1, calc(0.14 * var(--t-line-k)))) !important;
+  color: rgb(var(--t-ink-2)) !important;
+  box-shadow: 0 12px 30px -12px rgb(0 0 0 / 0.35);
+}
+:root:is(.light, .midnight, .contrast) .recharts-default-tooltip .recharts-tooltip-label {
+  color: rgb(var(--t-ink-1)) !important;
+}
+:root.light .recharts-rectangle.recharts-tooltip-cursor {
+  fill: rgb(15 23 42 / 0.05);
+}
+:root.light .recharts-curve.recharts-tooltip-cursor {
+  stroke: rgb(15 23 42 / 0.25);
+}
+:root.light .recharts-wrapper svg text:not(.recharts-cartesian-axis-tick-value, .recharts-polar-angle-axis-tick-value, .recharts-polar-radius-axis-tick-value) {
+  /* series-coloured labels (reference lines, label lists) — deepen for paper */
+  filter: brightness(0.62) saturate(1.2);
+}
+/* Hand-rolled SVG charts: neutral inks/strokes written as presentation attributes */
+:root:is(.light, .midnight, .contrast) svg :is(text, tspan):is([fill="#fff"], [fill="#ffffff"], [fill="white"], [fill="#f8fafc"], [fill="#f1f5f9"]):not(.theme-island *) { fill: rgb(var(--t-ink-1)); }
+:root:is(.light, .midnight, .contrast) svg :is(text, tspan):is([fill="#e2e8f0"], [fill="#cbd5e1"]):not(.theme-island *) { fill: rgb(var(--t-ink-3)); }
+:root:is(.light, .midnight, .contrast) svg :is(text, tspan):is([fill="#94a3b8"], [fill="#64748b"], [fill="#475569"]):not(.theme-island *) { fill: rgb(var(--t-ink-5)); }
+:root:is(.light, .contrast) svg :is(line, path, rect, circle, polyline):is([stroke="#0f172a"], [stroke="#1e293b"], [stroke="#334155"], [stroke="#1f2937"], [stroke^="rgba(148,163,184,0.0"], [stroke^="rgba(148,163,184,0.1"], [stroke^="rgba(255,255,255,0.0"], [stroke^="rgba(255,255,255,0.1"]):not(.theme-island *) {
+  stroke: rgb(var(--t-line) / 0.14);
+}
+:root.contrast svg :is(line, path, rect, circle, polyline):is([stroke="#0f172a"], [stroke="#1e293b"], [stroke="#334155"], [stroke="#1f2937"], [stroke^="rgba(148,163,184,0.0"], [stroke^="rgba(148,163,184,0.1"], [stroke^="rgba(255,255,255,0.0"], [stroke^="rgba(255,255,255,0.1"]):not(.theme-island *) {
+  stroke: rgb(255 255 255 / 0.4);
+}
+:root:is(.light, .midnight, .contrast) svg :is(rect, circle, path):is([fill="#020617"], [fill="#050a14"], [fill="#060a16"], [fill="#0b1224"], [fill="#0f172a"]):not(.theme-island *) {
+  fill: rgb(var(--t-panel));
+}
+:root:is(.light, .contrast) svg :is(rect, circle, path):is([fill="#1e293b"], [fill="#334155"]):not(.theme-island *) {
+  fill: rgb(var(--t-muted));
+}
+:root:is(.light, .midnight, .contrast) svg :is(rect, path, circle):is([fill^="rgba(255,255,255,0.0"], [fill^="rgba(148,163,184,0.0"]):not(.theme-island *) {
+  fill: rgb(var(--t-tint) / 0.04);
+}
+
+/* ── 6. Toasts, scrollbars, selection ─────────────────────────────────────── */
+:root.light [data-sonner-toast][data-styled="true"] {
+  background: rgb(255 255 255 / 0.97) !important;
+  color: #0f172a !important;
+  border: 1px solid rgb(15 23 42 / 0.1) !important;
+  box-shadow: 0 16px 40px -16px rgb(15 23 42 / 0.35) !important;
+}
+:root.midnight [data-sonner-toast][data-styled="true"] {
+  background: #050608 !important;
+  border: 1px solid rgb(255 255 255 / 0.12) !important;
+}
+:root.contrast [data-sonner-toast][data-styled="true"] {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+:root:is(.light, .midnight, .contrast) ::-webkit-scrollbar-thumb { background: var(--t-scrollbar); }
+:root:is(.light, .midnight, .contrast) ::selection { background: var(--t-selection); }
+:root.contrast ::selection { color: #000; }
+
+/* ── 7. Contrast safety net ───────────────────────────────────────────────────
+   Many colours arrive inline (risk scales, series colours, industry accents).
+   Daylight caps the lightness of every text fill / icon stroke; High Contrast
+   lifts every light-ish ink to near-white. Both keep hue & chroma, so a
+   "high risk" red stays red — just legible. Saturated fills keep their own ink. */
+/* lightness ≤ 0.42 (≈ 5.5:1 on white); faded inks (alpha 0.6–0.9) are firmed up, fully
+   transparent ink (gradient text) stays transparent */
+:root.light body {
+  -webkit-text-fill-color: oklch(from currentColor min(l, 0.42) c h / calc(alpha + (1 - alpha) * 0.7 * clamp(0, (alpha - 0.05) * 100, 1)));
+}
+:root.light svg.lucide {
+  stroke: oklch(from currentColor min(l, 0.6) c h / alpha);
+}
+:root.contrast body {
+  -webkit-text-fill-color: oklch(from currentColor calc(l + (max(l, 0.93) - l) * clamp(0, (l - 0.3) * 100, 1)) c h / alpha);
+}
+:root.contrast svg.lucide {
+  stroke: oklch(from currentColor calc(l + (max(l, 0.9) - l) * clamp(0, (l - 0.3) * 100, 1)) c h / alpha);
+}
+/* White ink on saturated fills (badges, danger buttons) stays white */
+:root.light :is(.bg-\[\#075e54\], .bg-\[\#22c55e\], .bg-\[\#4ade80\], .bg-\[\#84cc16\], .bg-\[\#a78bfa\], .bg-\[\#ef4444\], .bg-\[\#f59e0b\], .bg-\[\#f87171\], .bg-\[\#fbbf24\], .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-blue-500, .bg-blue-600, .bg-cyan-400, .bg-cyan-400\/80, .bg-cyan-500, .bg-cyan-500\/80, .bg-cyan-600, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-fuchsia-500, .bg-fuchsia-600, .bg-green-500, .bg-green-600, .bg-indigo-500, .bg-indigo-600, .bg-lime-500, .bg-lime-600, .bg-orange-500, .bg-orange-600, .bg-pink-500, .bg-pink-600, .bg-purple-500, .bg-purple-600, .bg-red-500, .bg-red-600, .bg-rose-400, .bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-sky-400, .bg-sky-400\/80, .bg-sky-500, .bg-sky-600, .bg-teal-500, .bg-teal-600, .bg-violet-400, .bg-violet-500, .bg-violet-500\/80, .bg-violet-600, .bg-yellow-500, .bg-yellow-600, .from-cyan-400, .from-emerald-400, .from-emerald-500, .from-sky-400, .from-violet-500):is(.text-white, .\!text-white),
+:root.light :is(.bg-\[\#075e54\], .bg-\[\#22c55e\], .bg-\[\#4ade80\], .bg-\[\#84cc16\], .bg-\[\#a78bfa\], .bg-\[\#ef4444\], .bg-\[\#f59e0b\], .bg-\[\#f87171\], .bg-\[\#fbbf24\], .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-blue-500, .bg-blue-600, .bg-cyan-400, .bg-cyan-400\/80, .bg-cyan-500, .bg-cyan-500\/80, .bg-cyan-600, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-fuchsia-500, .bg-fuchsia-600, .bg-green-500, .bg-green-600, .bg-indigo-500, .bg-indigo-600, .bg-lime-500, .bg-lime-600, .bg-orange-500, .bg-orange-600, .bg-pink-500, .bg-pink-600, .bg-purple-500, .bg-purple-600, .bg-red-500, .bg-red-600, .bg-rose-400, .bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-sky-400, .bg-sky-400\/80, .bg-sky-500, .bg-sky-600, .bg-teal-500, .bg-teal-600, .bg-violet-400, .bg-violet-500, .bg-violet-500\/80, .bg-violet-600, .bg-yellow-500, .bg-yellow-600, .from-cyan-400, .from-emerald-400, .from-emerald-500, .from-sky-400, .from-violet-500) :is(.text-white, .\!text-white) {
+  color: #fff !important;
+}
+:root:is(.light, .contrast) :is(.theme-island, .theme-raw, .leaflet-marker-pane, .leaflet-tooltip-pane, .bg-\[\#075e54\], .bg-\[\#22c55e\], .bg-\[\#4ade80\], .bg-\[\#84cc16\], .bg-\[\#a78bfa\], .bg-\[\#ef4444\], .bg-\[\#f59e0b\], .bg-\[\#f87171\], .bg-\[\#fbbf24\], .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-blue-500, .bg-blue-600, .bg-cyan-400, .bg-cyan-400\/80, .bg-cyan-500, .bg-cyan-500\/80, .bg-cyan-600, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-fuchsia-500, .bg-fuchsia-600, .bg-green-500, .bg-green-600, .bg-indigo-500, .bg-indigo-600, .bg-lime-500, .bg-lime-600, .bg-orange-500, .bg-orange-600, .bg-pink-500, .bg-pink-600, .bg-purple-500, .bg-purple-600, .bg-red-500, .bg-red-600, .bg-rose-400, .bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-sky-400, .bg-sky-400\/80, .bg-sky-500, .bg-sky-600, .bg-teal-500, .bg-teal-600, .bg-violet-400, .bg-violet-500, .bg-violet-500\/80, .bg-violet-600, .bg-yellow-500, .bg-yellow-600, .from-cyan-400, .from-emerald-400, .from-emerald-500, .from-sky-400, .from-violet-500) {
+  -webkit-text-fill-color: currentColor;
+}
+:root:is(.light, .contrast) :is(.theme-island, .theme-raw, .bg-\[\#075e54\], .bg-\[\#22c55e\], .bg-\[\#4ade80\], .bg-\[\#84cc16\], .bg-\[\#a78bfa\], .bg-\[\#ef4444\], .bg-\[\#f59e0b\], .bg-\[\#f87171\], .bg-\[\#fbbf24\], .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-blue-500, .bg-blue-600, .bg-cyan-400, .bg-cyan-400\/80, .bg-cyan-500, .bg-cyan-500\/80, .bg-cyan-600, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-fuchsia-500, .bg-fuchsia-600, .bg-green-500, .bg-green-600, .bg-indigo-500, .bg-indigo-600, .bg-lime-500, .bg-lime-600, .bg-orange-500, .bg-orange-600, .bg-pink-500, .bg-pink-600, .bg-purple-500, .bg-purple-600, .bg-red-500, .bg-red-600, .bg-rose-400, .bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-sky-400, .bg-sky-400\/80, .bg-sky-500, .bg-sky-600, .bg-teal-500, .bg-teal-600, .bg-violet-400, .bg-violet-500, .bg-violet-500\/80, .bg-violet-600, .bg-yellow-500, .bg-yellow-600, .from-cyan-400, .from-emerald-400, .from-emerald-500, .from-sky-400, .from-violet-500) svg.lucide,
+:root:is(.light, .contrast) svg.lucide:is(.theme-raw, .bg-\[\#075e54\], .bg-\[\#22c55e\], .bg-\[\#4ade80\], .bg-\[\#84cc16\], .bg-\[\#a78bfa\], .bg-\[\#ef4444\], .bg-\[\#f59e0b\], .bg-\[\#f87171\], .bg-\[\#fbbf24\], .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-blue-500, .bg-blue-600, .bg-cyan-400, .bg-cyan-400\/80, .bg-cyan-500, .bg-cyan-500\/80, .bg-cyan-600, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-fuchsia-500, .bg-fuchsia-600, .bg-green-500, .bg-green-600, .bg-indigo-500, .bg-indigo-600, .bg-lime-500, .bg-lime-600, .bg-orange-500, .bg-orange-600, .bg-pink-500, .bg-pink-600, .bg-purple-500, .bg-purple-600, .bg-red-500, .bg-red-600, .bg-rose-400, .bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-sky-400, .bg-sky-400\/80, .bg-sky-500, .bg-sky-600, .bg-teal-500, .bg-teal-600, .bg-violet-400, .bg-violet-500, .bg-violet-500\/80, .bg-violet-600, .bg-yellow-500, .bg-yellow-600, .from-cyan-400, .from-emerald-400, .from-emerald-500, .from-sky-400, .from-violet-500) {
+  stroke: currentColor;
+}
+
+/* ── 8. High Contrast extras: no translucency or blur, loud focus, underlined links */
+:root.contrast *,
+:root.contrast *::before,
+:root.contrast *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+:root.contrast :focus-visible {
+  outline: 3px solid #ffd400 !important;
+  outline-offset: 2px !important;
+}
+:root.contrast :is(main, article, .docs-prose, footer) a:not([class*="bg-"]):not([class*="border"]):not([class*="rounded"]),
+:root.contrast p a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+/* White ink on mid-tone fills (badges, danger buttons): deeper fill for ≥ 4.5:1 (every theme except Mission Control) */
+:root:is(.light, .midnight, .contrast) :is(.bg-rose-500, .bg-rose-500\/90, .bg-rose-600, .bg-red-500, .bg-red-500\/90):not(.text-slate-950, .text-slate-900) { background-color: #be123c; }
+:root:is(.light, .midnight, .contrast) :is(.bg-violet-500, .bg-violet-600, .bg-purple-500):not(.text-slate-950, .text-slate-900) { background-color: #6d28d9; }
+:root:is(.light, .midnight, .contrast) :is(.bg-pink-500, .bg-fuchsia-500):not(.text-slate-950, .text-slate-900) { background-color: #a21caf; }
+:root:is(.light, .midnight, .contrast) :is(.bg-orange-500, .bg-orange-600):not(.text-slate-950, .text-slate-900) { background-color: #c2410c; }
+:root:is(.light, .midnight, .contrast) :is(.bg-blue-500, .bg-blue-600, .bg-indigo-500):not(.text-slate-950, .text-slate-900) { background-color: #1d4ed8; }
+:root.contrast input,
+:root.contrast select,
+:root.contrast textarea {
+  border-color: rgb(255 255 255 / 0.85);
+}
+:root.midnight *,
+:root.midnight *::before,
+:root.midnight *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+:root.light :focus-visible {
+  outline-color: #0f766e;
+}
+
+/* ── 9. Accent colour (Appearance → Accent). Emerald = no override. ───────── */
+:root[data-accent="cyan"] { --user-accent: 6 182 212; --user-accent-hi: 34 211 238; --user-accent-soft: 103 232 249; --user-accent-deep: 14 116 144; }
+:root[data-accent="violet"] { --user-accent: 139 92 246; --user-accent-hi: 167 139 250; --user-accent-soft: 196 181 253; --user-accent-deep: 109 40 217; }
+:root[data-accent="amber"] { --user-accent: 245 158 11; --user-accent-hi: 251 191 36; --user-accent-soft: 252 211 77; --user-accent-deep: 180 83 9; }
+:root[data-accent="rose"] { --user-accent: 244 63 94; --user-accent-hi: 251 113 133; --user-accent-soft: 253 164 175; --user-accent-deep: 190 18 60; }
+:root.light[data-accent] { --t-accent-text: var(--user-accent-deep); --t-selection: rgb(var(--user-accent) / 0.22); }
+:root:is(.midnight, .contrast)[data-accent] { --t-accent-text: var(--user-accent-soft); }
+:root[data-accent] .hud-panel::before,
+:root[data-accent] .hud-panel::after {
+  border-color: rgb(var(--user-accent) / var(--t-bracket-alpha, 0.7));
+}
+:root[data-accent] :is(button, a, [role="button"], [role="radio"], [role="tab"]):is(.bg-emerald-500, .bg-emerald-400, .bg-cyan-400, .bg-cyan-500, .bg-sky-400) {
+  background-color: rgb(var(--user-accent));
+}
+:root[data-accent] :is(button, a, [role="button"]):is(.hover\:bg-emerald-400, .hover\:bg-emerald-300, .hover\:bg-cyan-300, .hover\:bg-cyan-400, .hover\:bg-sky-300):hover {
+  background-color: rgb(var(--user-accent-hi));
+}
+:root[data-accent] a:is(.text-emerald-300, .text-emerald-400, .text-cyan-300, .text-cyan-400, .text-sky-300, .text-teal-300) {
+  color: rgb(var(--user-accent-soft));
+}
+:root[data-accent] ::selection { background: rgb(var(--user-accent) / 0.3); }
+
+/* ── 10. Theme switch transitions ─────────────────────────────────────────── */
+:root.theme-vt::view-transition-old(root),
+:root.theme-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root.theme-vt::view-transition-old(root) { z-index: 1; }
+:root.theme-vt::view-transition-new(root) { z-index: 2; }
+:root.theme-xfade,
+:root.theme-xfade *,
+:root.theme-xfade *::before,
+:root.theme-xfade *::after {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, fill 0.2s ease, stroke 0.2s ease, box-shadow 0.2s ease, -webkit-text-fill-color 0.2s ease !important;
+}
+
+/* ── 11. Motion preference (Appearance → Motion) ──────────────────────────── */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+:root[data-motion="reduced"] .animate-spin {
+  animation-duration: 1s !important;
+  animation-iteration-count: infinite !important;
+}
+
+/* ── 12. Print: always Daylight (JS swaps the theme on beforeprint) ───────── */
+@media print {
+  :root { color-scheme: light; }
+  .theme-toggle { display: none !important; }
+}

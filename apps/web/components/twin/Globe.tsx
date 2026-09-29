@@ -1250,7 +1250,8 @@ function GlobeInner(p: GlobeProps & { dprSet: (d: number) => void }) {
 function Globe(props: GlobeProps) {
   const [dpr, setDpr] = useState(() => (typeof window === "undefined" ? 1 : Math.min(1.75, window.devicePixelRatio || 1)));
   return (
-    <div className={props.className ?? "absolute inset-0"} data-testid="twin-globe">
+    // theme-island: the 3D scene is space-dark in every theme, so its in-scene labels keep Mission Control ink
+    <div className={`theme-island ${props.className ?? "absolute inset-0"}`} data-testid="twin-globe">
       <Canvas
         dpr={dpr}
         frameloop={props.reducedMotion ? "demand" : "always"}

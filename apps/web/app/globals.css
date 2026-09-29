@@ -105,7 +105,8 @@
     --radius: 0.625rem;
   }
 
-  .dark {
+  /* Midnight OLED and High Contrast are dark themes too (see app/themes.css) */
+  .dark, .midnight, .contrast {
     /* ── Dark Mode ─────────────────────────────────────── */
     --bg-primary:    10  15  30;
     --bg-secondary:  13  20  42;

@@ -17,6 +17,7 @@ import { ROLE_LABELS } from "@/lib/rbac";
 import { useRealtime } from "@/hooks/useRealtime";
 import { LiveDot } from "./index";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export interface NavItem {
   href: string;
@@ -62,7 +63,8 @@ export function DashboardShell({
   const pathname = usePathname();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
-  const rgb = ACCENT_RGB[accent];
+  // Appearance → Accent (html[data-accent]) overrides the portal accent; unset = portal signature colour
+  const rgb = `var(--user-accent, ${ACCENT_RGB[accent]})`;
 
   useRealtime(rooms, (env) => {
     const e = env.event;
@@ -129,6 +131,7 @@ export function DashboardShell({
           <span className="hidden sm:inline hud-label border-l border-white/10 pl-3">{product}</span>
           <div className="ml-auto flex items-center gap-3">
             {topbarExtra}
+            <ThemeToggle />
             <NotificationBell />
             <Clock />
             <LiveDot />

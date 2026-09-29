@@ -210,7 +210,7 @@ export function Meter({ value, color, className }: { value: number; color?: stri
   const c = color ?? riskColor(value);
   return (
     <div className={cn("h-1.5 w-full rounded-full bg-slate-800 overflow-hidden", className)}>
-      <motion.div className="h-full rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}` }} initial={{ width: 0 }} animate={{ width: `${Math.min(100, Math.max(0, value))}%` }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
+      <motion.div className="h-full rounded-full" style={{ background: c, boxShadow: `0 0 var(--t-meter-glow, 10px) ${c}` }} initial={{ width: 0 }} animate={{ width: `${Math.min(100, Math.max(0, value))}%` }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
     </div>
   );
 }

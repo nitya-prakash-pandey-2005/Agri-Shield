@@ -7,6 +7,7 @@ import { Lock, Radar, Satellite, Shield, Waves } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AnimatedNumber, LiveDot, SourceTag } from "@/components/hud";
 
 export const authInput =
@@ -72,7 +73,10 @@ export function AuthShell({ children, wide = false }: { children: ReactNode; wid
             Agri<span className="text-emerald-400">-SHIELD</span>
           </span>
         </Link>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-2 sm:px-8 lg:grid-cols-2 lg:pt-8">

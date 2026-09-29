@@ -45,7 +45,8 @@ function PhoneFrame({ children, label, icon: Icon, dark = true }: { children: Re
       <div className="hud-label mb-2 flex items-center gap-1.5">
         <Icon size={11} className="text-emerald-400" /> {label}
       </div>
-      <div className="relative w-full max-w-[260px] rounded-[30px] border border-slate-700/70 bg-slate-950 p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]">
+      {/* theme-island: a phone mock-up looks like a phone in every app theme */}
+      <div className="theme-island relative w-full max-w-[260px] rounded-[30px] border border-slate-700/70 bg-slate-950 p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]">
         <div className="absolute left-1/2 top-3 z-10 h-4 w-20 -translate-x-1/2 rounded-full bg-black" />
         <div className={cn("relative h-[430px] overflow-hidden rounded-[24px]", dark ? "bg-slate-900" : "bg-white")}>{children}</div>
       </div>

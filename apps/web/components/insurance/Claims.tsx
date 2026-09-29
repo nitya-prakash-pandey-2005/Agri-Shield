@@ -6,6 +6,7 @@
  * score and a downloadable PDF evidence report.
  */
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ExternalLink, FileDown, FileSearch, History, Satellite } from "lucide-react";
@@ -32,10 +33,16 @@ export default function Claims({ meta, orgName }: { meta: Meta; orgName: string 
   const utils = trpc.useUtils();
   const plots = trpc.insurance.plots.useQuery();
   const history = trpc.insurance.claims.useQuery();
-  const [plotId, setPlotId] = useState("");
+  // Deep links (e.g. from Satellite Lab flood scans): ?assetId=&lossDate=&peril=
+  const params = useSearchParams();
+  const qPeril = params?.get("peril");
+  const qDate = params?.get("lossDate");
+  const [plotId, setPlotId] = useState(params?.get("assetId") ?? "");
   const [pt, setPt] = useState({ lat: 22.7185, lon: 89.0705 });
-  const [lossDate, setLossDate] = useState("2024-05-27");
-  const [peril, setPeril] = useState<Claim["input"]["peril"]>("cyclone");
+  const [lossDate, setLossDate] = useState(qDate && /^\d{4}-\d{2}-\d{2}$/.test(qDate) ? qDate : "2024-05-27");
+  const [peril, setPeril] = useState<Claim["input"]["peril"]>(
+    qPeril && meta.perils.some((p) => p.value === qPeril) ? (qPeril as Claim["input"]["peril"]) : "cyclone"
+  );
   const [claimed, setClaimed] = useState(2500);
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<Claim | null>(null);

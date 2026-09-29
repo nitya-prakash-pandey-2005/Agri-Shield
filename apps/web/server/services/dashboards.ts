@@ -5,19 +5,20 @@
  *   list / get / create (blank · template · duplicate) / update / delete
  *   set default · tokenised read-only share links · per-dashboard refresh
  *
- * Side-car state on globalThis (survives hot reload), mirrored to a JSON file
- * in the OS temp dir so dashboards and share links survive a dev-server
- * restart (swap for the DB in production). Each workspace gets one dashboard
- * from its industry template on first visit so the page is never empty.
+ * Side-car state on globalThis (survives hot reload), saved by the
+ * persistence layer (server/persist) so dashboards and share links survive a
+ * restart. Each workspace gets one dashboard from its industry template on
+ * first visit so the page is never empty.
  */
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Industry } from "@agri-shield/types";
 import { audit, getStore } from "../data/store";
 import { WIDGETS, type Widget, type WidgetKind } from "@/components/dashboards/catalog";
 import { clampItem, compact } from "@/components/dashboards/grid";
+import { omitKeys, requestFlush, restoreInto, track } from "../persist";
 
 export interface DashboardRecord {
   id: string;
@@ -202,17 +203,23 @@ interface DashState {
   seq: number;
 }
 const g = globalThis as unknown as { __agriDashboards?: DashState };
-const state: DashState = (g.__agriDashboards ??= { byOrg: new Map(), loaded: false, seq: 0 });
+const DASHBOARDS_VERSION = 1;
+track("dashboards", DASHBOARDS_VERSION, () => g.__agriDashboards && omitKeys(g.__agriDashboards, ["loaded"]));
+const state: DashState = (g.__agriDashboards ??= (() => {
+  const s = restoreInto<DashState>("dashboards", DASHBOARDS_VERSION, { byOrg: new Map(), loaded: false, seq: 0 }, ["byOrg", "seq"]);
+  if (s.byOrg.size) s.loaded = true; // restored — skip the legacy import below
+  return s;
+})());
 
-const FILE = join(process.env.AGRI_CACHE_DIR ?? join(tmpdir(), "agri-shield-cache"), "dashboards.json");
-const persistEnabled = () => process.env.AGRI_OFFLINE !== "true";
+/** Legacy location (before server/persist): imported once, then saved by the persistence layer. */
+const LEGACY_FILE = join(process.env.AGRI_CACHE_DIR ?? join(tmpdir(), "agri-shield-cache"), "dashboards.json");
 
 function load() {
   if (state.loaded) return;
   state.loaded = true;
-  if (!persistEnabled()) return;
+  if (process.env.AGRI_OFFLINE === "true") return;
   try {
-    const raw = JSON.parse(readFileSync(FILE, "utf8")) as DashboardRecord[];
+    const raw = JSON.parse(readFileSync(LEGACY_FILE, "utf8")) as DashboardRecord[];
     for (const d of raw) {
       const rec: DashboardRecord = { ...d, createdAt: new Date(d.createdAt), updatedAt: new Date(d.updatedAt), sharedAt: d.sharedAt ? new Date(d.sharedAt) : null };
       const list = state.byOrg.get(rec.orgId) ?? [];
@@ -224,18 +231,9 @@ function load() {
   }
 }
 
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
+/** Changes are picked up by the periodic flush; this just saves sooner. */
 function save() {
-  if (!persistEnabled()) return;
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      mkdirSync(join(FILE, ".."), { recursive: true });
-      writeFileSync(FILE, JSON.stringify([...state.byOrg.values()].flat()));
-    } catch {
-      /* read-only FS: memory only */
-    }
-  }, 300);
+  requestFlush();
 }
 
 const newId = (prefix: string) => `${prefix}_${Date.now().toString(36)}${(state.seq++).toString(36)}${randomBytes(3).toString("hex")}`;

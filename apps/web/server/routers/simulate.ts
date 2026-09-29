@@ -15,6 +15,7 @@ import { FLOOD_CAVEATS, floodPresets, runFloodSim, simCache, type FloodSimResult
 import { CYCLONE_CAVEATS, listTracks, runCycloneSim, SSHS, trackPreview, type CycloneSimResult } from "../services/sim-cyclone";
 import { DROUGHT_CAVEATS, droughtPresets, runDroughtSim, type DroughtSimResult } from "../services/sim-drought";
 import { DAMAGE_SOURCE, HEAT_SENS, JRC_ASIA, JRC_DEPTHS, KY, WIND_FRAGILITY, WIND_SOURCE } from "../services/sim-impact";
+import { restore, track } from "../persist";
 
 const read = permitted("use_workspace");
 
@@ -65,7 +66,10 @@ export interface SavedScenario {
 }
 
 const g = globalThis as unknown as { __agriSimLibrary?: Map<string, SavedScenario[]> };
-const library: Map<string, SavedScenario[]> = (g.__agriSimLibrary ??= new Map());
+const SIM_LIBRARY_VERSION = 1;
+track("simulate.library", SIM_LIBRARY_VERSION, () => g.__agriSimLibrary);
+const library: Map<string, SavedScenario[]> = (g.__agriSimLibrary ??=
+  restore<Map<string, SavedScenario[]>>("simulate.library", SIM_LIBRARY_VERSION, (v) => v instanceof Map) ?? new Map());
 const libOf = (ws: string) => {
   let l = library.get(ws);
   if (!l) library.set(ws, (l = []));

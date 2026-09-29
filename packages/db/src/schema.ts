@@ -790,6 +790,21 @@ export const jobRuns = pgTable(
   (t) => [index("job_runs_job_started_idx").on(t.job, t.startedAt.desc())]
 );
 
+/**
+ * Durable snapshots of the web app's in-process state (apps/web/server/persist).
+ * One row per store key; `value` is a superjson document, `version` the store's
+ * schema version (a mismatch makes the app re-seed that store). The web app
+ * also creates this table on demand (CREATE TABLE IF NOT EXISTS) — keep the
+ * DDL in apps/web/server/persist/pg-driver.ts in sync with this definition.
+ */
+export const appState = pgTable("app_state", {
+  key: varchar("key", { length: 128 }).primaryKey(),
+  version: integer("version").notNull().default(1),
+  value: text("value").notNull(),
+  bytes: integer("bytes").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ─── Inferred row types ────────────────────────────────────────────────────
 
 export type AnyTable = PgTable;
@@ -833,3 +848,4 @@ export type Commodity = typeof commodities.$inferSelect;
 export type CommodityPrice = typeof commodityPrices.$inferSelect;
 export type RagDocument = typeof ragDocuments.$inferSelect;
 export type JobRun = typeof jobRuns.$inferSelect;
+export type AppStateRow = typeof appState.$inferSelect;

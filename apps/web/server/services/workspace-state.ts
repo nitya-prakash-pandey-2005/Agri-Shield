@@ -12,6 +12,7 @@
 import { randomBytes } from "node:crypto";
 import type { Industry, SubscriptionPlan, UserRole } from "@agri-shield/types";
 import { getStore, type OrgRecord } from "../data/store";
+import { restoreInto, track } from "../persist";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -157,8 +158,11 @@ interface State {
 
 const g = globalThis as unknown as { __agriWsState?: State };
 
+const WS_STATE_VERSION = 1;
+track("workspace", WS_STATE_VERSION, () => g.__agriWsState);
+
 export function wsState(): State {
-  return (g.__agriWsState ??= {
+  return (g.__agriWsState ??= restoreInto<State>("workspace", WS_STATE_VERSION, {
     invites: [],
     onboarding: new Map(),
     tour: new Map(),
@@ -171,7 +175,7 @@ export function wsState(): State {
     planEvents: [],
     profiles: new Map(),
     counter: 0,
-  });
+  }));
 }
 
 /** Test helper */

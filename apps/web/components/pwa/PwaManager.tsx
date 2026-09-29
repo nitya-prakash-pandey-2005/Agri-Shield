@@ -5,12 +5,15 @@
  *  - registers /sw.js (production, or dev with NEXT_PUBLIC_SW_DEV=true)
  *  - online / offline status toasts + background-sync replay on reconnect
  *  - install prompt banner (beforeinstallprompt) and an iOS "Add to Home Screen" hint
+ *  - Web Push: keeps this device's subscription registered (PushSync) and drops it on sign-out
  */
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Download, Share, X } from "lucide-react";
 import { toast } from "sonner";
+import { PushSync } from "./PushSync";
+import { setPushOptIn } from "./usePushNotifications";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -39,12 +42,22 @@ export function PwaManager() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosHint, setIosHint] = useState(false);
   const [visible, setVisible] = useState(false);
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const prevStatus = useRef(status);
 
   // Signing out clears cached personal pages + farmer data from the service worker
   useEffect(() => {
-    if (prevStatus.current === "authenticated" && status === "unauthenticated") postToSw({ type: "CLEAR_USER_CACHE" });
+    if (prevStatus.current === "authenticated" && status === "unauthenticated") {
+      postToSw({ type: "CLEAR_USER_CACHE" });
+      // A shared phone must not keep receiving the previous user's alerts: the server
+      // drops the endpoint on its next send (410 Gone).
+      setPushOptIn(false);
+      navigator.serviceWorker
+        ?.getRegistration("/")
+        .then((reg) => reg?.pushManager?.getSubscription())
+        .then((sub) => sub?.unsubscribe())
+        .catch(() => undefined);
+    }
     prevStatus.current = status;
   }, [status]);
 
@@ -168,49 +181,53 @@ export function PwaManager() {
     setVisible(false);
   };
 
+  const userId = status === "authenticated" ? session?.user?.id : undefined;
   return (
-    <AnimatePresence>
-      {visible && (deferred || iosHint) && (
-        <motion.aside
-          role="dialog"
-          aria-label="Install Agri-SHIELD"
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 28 }}
-          className="fixed inset-x-3 bottom-3 z-[1200] mx-auto max-w-md rounded-2xl border border-emerald-400/25 bg-[#07101f]/95 p-4 shadow-[0_20px_60px_-20px_rgba(16,185,129,0.45)] backdrop-blur-xl sm:inset-x-auto sm:right-5 sm:bottom-5"
-        >
-          <div className="flex items-start gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon-192.png" alt="" width={44} height={44} className="rounded-xl" />
-            <div className="min-w-0 flex-1">
-              <p className="font-display text-sm font-semibold text-white">Install Agri-SHIELD</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
-                {iosHint && !deferred ? (
-                  <>
-                    Tap <Share size={12} className="inline -mt-0.5" aria-label="Share" /> then <strong className="text-slate-200">Add to Home Screen</strong> to get alerts offline.
-                  </>
-                ) : (
-                  "Works offline in the field, opens instantly and delivers flood alerts as notifications."
+    <>
+      {userId && SW_ENABLED && <PushSync userId={userId} />}
+      <AnimatePresence>
+        {visible && (deferred || iosHint) && (
+          <motion.aside
+            role="dialog"
+            aria-label="Install Agri-SHIELD"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            className="fixed inset-x-3 bottom-3 z-[1200] mx-auto max-w-md rounded-2xl border border-emerald-400/25 bg-[#07101f]/95 p-4 shadow-[0_20px_60px_-20px_rgba(16,185,129,0.45)] backdrop-blur-xl sm:inset-x-auto sm:right-5 sm:bottom-5"
+          >
+            <div className="flex items-start gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon-192.png" alt="" width={44} height={44} className="rounded-xl" />
+              <div className="min-w-0 flex-1">
+                <p className="font-display text-sm font-semibold text-white">Install Agri-SHIELD</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                  {iosHint && !deferred ? (
+                    <>
+                      Tap <Share size={12} className="inline -mt-0.5" aria-label="Share" /> then <strong className="text-slate-200">Add to Home Screen</strong> to get alerts offline.
+                    </>
+                  ) : (
+                    "Works offline in the field, opens instantly and delivers flood alerts as notifications."
+                  )}
+                </p>
+                {deferred && (
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={install} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+                      <Download size={15} /> Install app
+                    </button>
+                    <button onClick={dismiss} className="min-h-[40px] rounded-lg px-3 text-sm text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
+                      Not now
+                    </button>
+                  </div>
                 )}
-              </p>
-              {deferred && (
-                <div className="mt-3 flex gap-2">
-                  <button onClick={install} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
-                    <Download size={15} /> Install app
-                  </button>
-                  <button onClick={dismiss} className="min-h-[40px] rounded-lg px-3 text-sm text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
-                    Not now
-                  </button>
-                </div>
-              )}
+              </div>
+              <button onClick={dismiss} aria-label="Dismiss install prompt" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-white">
+                <X size={16} />
+              </button>
             </div>
-            <button onClick={dismiss} aria-label="Dismiss install prompt" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-white">
-              <X size={16} />
-            </button>
-          </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

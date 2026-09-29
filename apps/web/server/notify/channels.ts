@@ -5,7 +5,14 @@
  *
  *  SMS / WhatsApp → Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TWILIO_WHATSAPP_NUMBER)
  *  Email          → Resend (RESEND_API_KEY)
- *  Push           → Web Push / FCM (handled client-side via service worker)
+ *  Push           → Web Push with VAPID (RFC 8030 / 8291 / 8292), see ./webpush.ts.
+ *                   Free, no Firebase account: the browser's own push service
+ *                   (FCM for Chrome/Android, Mozilla, Apple, WNS) delivers to the
+ *                   service worker (public/sw.js). Keys come from VAPID_PUBLIC_KEY /
+ *                   VAPID_PRIVATE_KEY / VAPID_SUBJECT, or are generated once and kept
+ *                   in AGRI_DATA_DIR (default apps/web/.data/vapid.json). Every
+ *                   "app" delivery is recorded in-app here; device pushes are
+ *                   recorded alongside with provider "webpush".
  */
 export interface OutboxMessage {
   id: string;
@@ -21,7 +28,8 @@ export interface OutboxMessage {
 const g = globalThis as unknown as { __agriOutbox?: OutboxMessage[] };
 export const outbox = (g.__agriOutbox ??= []);
 
-function record(m: Omit<OutboxMessage, "id" | "at">) {
+/** Append a message to the outbox (newest first, capped at 1000). */
+export function recordOutbox(m: Omit<OutboxMessage, "id" | "at">) {
   const msg = { ...m, id: `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, at: new Date() };
   outbox.unshift(msg);
   if (outbox.length > 1000) outbox.length = 1000;
@@ -43,24 +51,24 @@ export async function sendSms(to: string, body: string) {
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
     try {
       await twilio(to, process.env.TWILIO_PHONE_NUMBER, body);
-      return record({ channel: "sms", to, body, status: "sent", provider: "twilio" });
+      return recordOutbox({ channel: "sms", to, body, status: "sent", provider: "twilio" });
     } catch (e) {
-      return record({ channel: "sms", to, body, status: "failed", provider: "twilio", error: (e as Error).message });
+      return recordOutbox({ channel: "sms", to, body, status: "failed", provider: "twilio", error: (e as Error).message });
     }
   }
-  return record({ channel: "sms", to, body, status: "simulated", provider: "outbox" });
+  return recordOutbox({ channel: "sms", to, body, status: "simulated", provider: "outbox" });
 }
 
 export async function sendWhatsApp(to: string, body: string) {
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_NUMBER) {
     try {
       await twilio(`whatsapp:${to}`, `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`, body);
-      return record({ channel: "whatsapp", to, body, status: "sent", provider: "twilio" });
+      return recordOutbox({ channel: "whatsapp", to, body, status: "sent", provider: "twilio" });
     } catch (e) {
-      return record({ channel: "whatsapp", to, body, status: "failed", provider: "twilio", error: (e as Error).message });
+      return recordOutbox({ channel: "whatsapp", to, body, status: "failed", provider: "twilio", error: (e as Error).message });
     }
   }
-  return record({ channel: "whatsapp", to, body, status: "simulated", provider: "outbox" });
+  return recordOutbox({ channel: "whatsapp", to, body, status: "simulated", provider: "outbox" });
 }
 
 export async function sendEmail(to: string, subject: string, html: string) {
@@ -72,14 +80,14 @@ export async function sendEmail(to: string, subject: string, html: string) {
         body: JSON.stringify({ from: process.env.RESEND_FROM ?? "Agri-SHIELD <alerts@agrishield.io>", to, subject, html }),
       });
       if (!res.ok) throw new Error(`Resend ${res.status}`);
-      return record({ channel: "email", to, body: subject, status: "sent", provider: "resend" });
+      return recordOutbox({ channel: "email", to, body: subject, status: "sent", provider: "resend" });
     } catch (e) {
-      return record({ channel: "email", to, body: subject, status: "failed", provider: "resend", error: (e as Error).message });
+      return recordOutbox({ channel: "email", to, body: subject, status: "failed", provider: "resend", error: (e as Error).message });
     }
   }
-  return record({ channel: "email", to, body: subject, status: "simulated", provider: "outbox" });
+  return recordOutbox({ channel: "email", to, body: subject, status: "simulated", provider: "outbox" });
 }
 
 export function recordAppPush(to: string, body: string) {
-  return record({ channel: "app", to, body, status: "sent", provider: "in-app" });
+  return recordOutbox({ channel: "app", to, body, status: "sent", provider: "in-app" });
 }

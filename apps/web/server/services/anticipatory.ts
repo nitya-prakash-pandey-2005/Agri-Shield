@@ -24,6 +24,7 @@ import { exposurePriors } from "./location-risk";
 import { refPoint } from "./parametric";
 import { clamp, quantile } from "./risk-math";
 import { notifyWorkspace } from "./workspace-notifications";
+import { restore, track } from "../persist";
 
 export type AaMetric = "flood_prob_72h" | "rain_5d_mm" | "discharge_ratio";
 
@@ -227,7 +228,16 @@ export function observedEventDays(h: DailyHistory): { flags: boolean[]; rule: st
 // ─── Stores ───────────────────────────────────────────────────────────────
 
 const g = globalThis as unknown as { __agriAa?: { protocols: AaProtocol[]; activations: AaActivation[] } };
+const AA_VERSION = 1;
+track("anticipatory", AA_VERSION, () => g.__agriAa);
 function aa() {
+  if (!g.__agriAa) {
+    const saved = restore<{ protocols: AaProtocol[]; activations: AaActivation[] }>("anticipatory", AA_VERSION, (v) => {
+      const x = v as { protocols?: unknown; activations?: unknown };
+      return Array.isArray(x.protocols) && Array.isArray(x.activations);
+    });
+    if (saved) g.__agriAa = saved;
+  }
   if (!g.__agriAa) {
     const now = new Date();
     g.__agriAa = {

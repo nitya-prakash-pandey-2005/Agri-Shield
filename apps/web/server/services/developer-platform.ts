@@ -13,6 +13,7 @@ import { audit, getStore, type ApiKeyRecord } from "../data/store";
 import { scState } from "../data/sc-state";
 import { createApiKey } from "./supply-chain";
 import { usageDaily } from "./usage";
+import { restoreInto, track } from "../persist";
 
 export const EXPLORER_HEADER = "x-agrishield-explorer";
 export const SANDBOX_TTL_DAYS = 30;
@@ -39,8 +40,10 @@ interface DevState {
 }
 
 const g = globalThis as unknown as { __agriDevPlatform?: DevState };
+const DEV_STATE_VERSION = 1;
+track("developer-platform", DEV_STATE_VERSION, () => g.__agriDevPlatform);
 export function devState(): DevState {
-  return (g.__agriDevPlatform ??= { calls: [], daily: new Map(), sandbox: new Map(), seq: 0 });
+  return (g.__agriDevPlatform ??= restoreInto<DevState>("developer-platform", DEV_STATE_VERSION, { calls: [], daily: new Map(), sandbox: new Map(), seq: 0 }));
 }
 export function __resetDevState() {
   g.__agriDevPlatform = undefined;

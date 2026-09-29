@@ -13,4 +13,5 @@ test-results
 .env.*
 !.env.example
 cj
+.data
 *.log

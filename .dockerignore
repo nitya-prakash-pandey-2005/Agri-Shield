@@ -29,6 +29,7 @@ apps/ml-api
 **/.venv
 **/*.pyc
 
-# Local DB/cache state
+# Local DB/cache state (never bake persisted app state or generated keys into an image)
 **/cj
+**/.data
 **/*.log

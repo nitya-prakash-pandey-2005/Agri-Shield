@@ -936,5 +936,30 @@
         "answered": "Answered"
       }
     }
+  },
+  "push": {
+    "title": "Phone notifications",
+    "subtitle": "Alerts on this device, even when the app is closed",
+    "statusOn": "On for this device",
+    "statusOff": "Off on this device",
+    "statusBlocked": "Blocked by the browser",
+    "statusUnsupported": "Not available here",
+    "enable": "Enable on this device",
+    "disable": "Turn off",
+    "test": "Send test",
+    "devices": "Your devices",
+    "thisDevice": "This device",
+    "remove": "Remove device",
+    "noDevices": "No devices yet. Enable notifications to get flood alerts instantly.",
+    "lastDelivered": "Last delivered {when}",
+    "added": "Added {when}",
+    "iosHint": "On iPhone or iPad: tap Share, then Add to Home Screen. Open Agri-SHIELD from the Home Screen and enable notifications here (iOS 16.4 or later).",
+    "deniedHint": "Notifications are blocked for this site. Allow them in your browser's site settings, then reload the page.",
+    "insecureHint": "Notifications need a secure HTTPS connection.",
+    "unsupportedHint": "Use Chrome, Edge, Firefox or Safari to receive alerts as notifications.",
+    "enabled": "Notifications enabled on this device",
+    "disabled": "Notifications turned off on this device",
+    "testSent": "Test sent to {count} device(s)",
+    "failed": "Could not enable notifications"
   }
 }

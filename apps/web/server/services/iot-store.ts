@@ -13,6 +13,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { DEVICE_TYPES, METRIC_META, deviceStatus, type Anomaly, type DeviceStatus, type DeviceType, type MetricKey, type SeriesPoint } from "./iot-types";
+import { restore, track } from "../persist";
 
 export const RAW_WINDOW_MS = 48 * 3_600_000;
 const RAW_CAP = 4096;
@@ -76,7 +77,33 @@ interface IotState {
 }
 
 const g = globalThis as unknown as { __agriIot?: IotState };
-export const iot: IotState = (g.__agriIot ??= { devices: new Map(), series: new Map(), anomalies: new Map(), seq: 0 });
+/**
+ * Persisted: user-registered devices (with their key hashes), their anomalies
+ * and the id sequence. Not persisted: the simulated demo fleet (re-created
+ * deterministically, together with its simulator profiles, on boot) and all raw /
+ * hourly readings (a time-series, rebuilt from new ingests).
+ */
+const IOT_VERSION = 1;
+type SavedIot = Pick<IotState, "devices" | "anomalies" | "seq">;
+track("iot", IOT_VERSION, (): SavedIot | undefined => {
+  const s = g.__agriIot;
+  if (!s) return undefined;
+  const devices = new Map([...s.devices].filter(([, d]) => !d.simulated));
+  return { devices, anomalies: new Map([...s.anomalies].filter(([id]) => devices.has(id))), seq: s.seq };
+});
+function restoreIot(): IotState {
+  const state: IotState = { devices: new Map(), series: new Map(), anomalies: new Map(), seq: 0 };
+  const saved = restore<SavedIot>("iot", IOT_VERSION, (v) => (v as SavedIot).devices instanceof Map && (v as SavedIot).anomalies instanceof Map);
+  if (!saved) return state;
+  for (const [id, d] of saved.devices) {
+    state.devices.set(id, d);
+    state.series.set(id, { raw: [], hourly: [], seen: new Set() });
+  }
+  state.anomalies = saved.anomalies;
+  state.seq = typeof saved.seq === "number" ? saved.seq : 0;
+  return state;
+}
+export const iot: IotState = (g.__agriIot ??= restoreIot());
 
 // ─── Keys ────────────────────────────────────────────────────────────────
 

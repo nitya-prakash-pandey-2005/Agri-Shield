@@ -7,6 +7,7 @@
  * Kept on globalThis so Next.js hot reload doesn't drop it.
  */
 import type { ScenarioRun } from "../services/supply-chain";
+import { restoreInto, track } from "../persist";
 
 export interface WebhookDelivery {
   id: string;
@@ -36,14 +37,17 @@ interface ScState {
 
 const g = globalThis as unknown as { __agriScState?: ScState };
 
+const SC_STATE_VERSION = 1;
+track("supply-chain", SC_STATE_VERSION, () => g.__agriScState);
+
 export function scState(): ScState {
-  return (g.__agriScState ??= {
+  return (g.__agriScState ??= restoreInto<ScState>("supply-chain", SC_STATE_VERSION, {
     keyHashes: new Map(),
     deliveries: [],
     webhookNames: new Map(),
     lastFired: new Map(),
     scenarios: [],
-  });
+  }));
 }
 
 export function logDelivery(d: WebhookDelivery) {

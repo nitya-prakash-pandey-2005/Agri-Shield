@@ -32,7 +32,7 @@ export const STATUS_COMPONENTS: ComponentDef[] = [
   { id: "ocean", name: "Sea level & terrain", description: "Marine sea-level and Copernicus DEM elevation", probes: ["open-meteo-marine", "open-meteo-elevation"] },
   { id: "hazards", name: "Disaster feeds", description: "GDACS and NASA EONET live events", probes: ["gdacs", "nasa-eonet"] },
   { id: "satellite", name: "Satellite imagery", description: "NASA GIBS map tiles and ORNL MODIS NDVI", probes: ["nasa-gibs", "ornl-modis"] },
-  { id: "soil", name: "Soil data", description: "ISRIC SoilGrids", probes: ["soilgrids"] },
+  { id: "soil", name: "Soil data", description: "ISRIC SoilGrids (REST + WMS)", probes: ["soilgrids", "soilgrids-wms"] },
   { id: "translation", name: "Translation", description: "Alert & SMS translation", probes: ["mymemory"] },
   { id: "economics", name: "Economic reference data", description: "World Bank indicators", probes: ["world-bank"] },
   { id: "jobs", name: "Background jobs", description: "Climate scans, notification dispatch, satellite ingest, retraining", probes: ["jobs"] },

@@ -89,6 +89,9 @@ GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 REVOKE UPDATE, DELETE ON audit_log FROM anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON job_runs FROM authenticated;
 REVOKE ALL ON "__drizzle_migrations" FROM anon, authenticated;
+-- Server-side state snapshots (sealed secrets, sessions): service role only, never exposed via the API
+ALTER TABLE app_state ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON app_state FROM anon, authenticated;
 
 -- ─── Enable RLS + platform-admin bypass on every application table ─────────
 DO $$

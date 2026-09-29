@@ -936,5 +936,30 @@
         "answered": "Nasagot na"
       }
     }
+  },
+  "push": {
+    "title": "Mga notification sa telepono",
+    "subtitle": "Mga alerto sa device na ito, kahit nakasara ang app",
+    "statusOn": "Naka-on sa device na ito",
+    "statusOff": "Naka-off sa device na ito",
+    "statusBlocked": "Naka-block ng browser",
+    "statusUnsupported": "Hindi available dito",
+    "enable": "I-on sa device na ito",
+    "disable": "I-off",
+    "test": "Magpadala ng test",
+    "devices": "Iyong mga device",
+    "thisDevice": "Ang device na ito",
+    "remove": "Alisin ang device",
+    "noDevices": "Wala pang device. I-on ang mga notification para agad makatanggap ng alerto sa baha.",
+    "lastDelivered": "Huling naipadala {when}",
+    "added": "Idinagdag {when}",
+    "iosHint": "Sa iPhone o iPad: i-tap ang Share, pagkatapos ay Add to Home Screen. Buksan ang Agri-SHIELD mula sa Home Screen at i-on ang mga notification dito (iOS 16.4 o mas bago).",
+    "deniedHint": "Naka-block ang mga notification para sa site na ito. Payagan ang mga ito sa site settings ng browser, pagkatapos ay i-reload ang page.",
+    "insecureHint": "Kailangan ng secure na HTTPS na koneksyon para sa mga notification.",
+    "unsupportedHint": "Gumamit ng Chrome, Edge, Firefox o Safari para makatanggap ng mga alerto bilang notification.",
+    "enabled": "Naka-on na ang mga notification sa device na ito",
+    "disabled": "Naka-off na ang mga notification sa device na ito",
+    "testSent": "Naipadala ang test sa {count} device",
+    "failed": "Hindi ma-on ang mga notification"
   }
 }

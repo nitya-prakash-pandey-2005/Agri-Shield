@@ -21,6 +21,7 @@ import { sustainabilityRouter } from "./sustainability";
 import { dashboardsRouter } from "./dashboards";
 import { imageryRouter } from "./imagery";
 import { developerRouter } from "./developer";
+import { pushRouter } from "./push";
 
 export const appRouter = router({
   public: publicRouter,
@@ -45,6 +46,7 @@ export const appRouter = router({
   dashboards: dashboardsRouter,
   imagery: imageryRouter,
   developer: developerRouter,
+  push: pushRouter,
 });
 
 export type AppRouter = typeof appRouter;

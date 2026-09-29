@@ -7,6 +7,7 @@
  * (tests, daily reset) this state is re-seeded too.
  */
 import { DAY, getStore, nextId } from "./store";
+import { restore, track } from "../persist";
 
 export interface IrrigationLogRecord {
   id: string;
@@ -199,8 +200,13 @@ function seedState(): FarmToolsState {
   return st;
 }
 
+const FARM_TOOLS_VERSION = 1;
+track("farmer-tools", FARM_TOOLS_VERSION, () => g.__agriFarmTools);
+
 export function farmTools(): FarmToolsState {
   const s = getStore();
-  if (!g.__agriFarmTools || g.__agriFarmTools.seededAt !== s.seededAt) g.__agriFarmTools = seedState();
+  g.__agriFarmTools ??= restore<FarmToolsState>("farmer-tools", FARM_TOOLS_VERSION, (v) => (v as FarmToolsState).seededAt instanceof Date && Array.isArray((v as FarmToolsState).ledger));
+  // Compare by time, not identity: a restored snapshot carries its own Date instance.
+  if (!g.__agriFarmTools || g.__agriFarmTools.seededAt.getTime() !== s.seededAt.getTime()) g.__agriFarmTools = seedState();
   return g.__agriFarmTools;
 }

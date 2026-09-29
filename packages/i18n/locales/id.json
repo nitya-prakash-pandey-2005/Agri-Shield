@@ -936,5 +936,30 @@
         "answered": "Terjawab"
       }
     }
+  },
+  "push": {
+    "title": "Notifikasi ponsel",
+    "subtitle": "Peringatan di perangkat ini, bahkan saat aplikasi ditutup",
+    "statusOn": "Aktif di perangkat ini",
+    "statusOff": "Nonaktif di perangkat ini",
+    "statusBlocked": "Diblokir oleh browser",
+    "statusUnsupported": "Tidak tersedia di sini",
+    "enable": "Aktifkan di perangkat ini",
+    "disable": "Matikan",
+    "test": "Kirim uji",
+    "devices": "Perangkat Anda",
+    "thisDevice": "Perangkat ini",
+    "remove": "Hapus perangkat",
+    "noDevices": "Belum ada perangkat. Aktifkan notifikasi untuk langsung menerima peringatan banjir.",
+    "lastDelivered": "Terakhir dikirim {when}",
+    "added": "Ditambahkan {when}",
+    "iosHint": "Di iPhone atau iPad: ketuk Bagikan, lalu Tambah ke Layar Utama. Buka Agri-SHIELD dari Layar Utama dan aktifkan notifikasi di sini (iOS 16.4 atau lebih baru).",
+    "deniedHint": "Notifikasi diblokir untuk situs ini. Izinkan di pengaturan situs browser, lalu muat ulang halaman.",
+    "insecureHint": "Notifikasi memerlukan koneksi HTTPS yang aman.",
+    "unsupportedHint": "Gunakan Chrome, Edge, Firefox, atau Safari untuk menerima peringatan sebagai notifikasi.",
+    "enabled": "Notifikasi diaktifkan di perangkat ini",
+    "disabled": "Notifikasi dimatikan di perangkat ini",
+    "testSent": "Uji dikirim ke {count} perangkat",
+    "failed": "Tidak dapat mengaktifkan notifikasi"
   }
 }

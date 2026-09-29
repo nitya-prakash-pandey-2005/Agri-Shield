@@ -17,6 +17,7 @@
 import { audit, getStore, nextId } from "../data/store";
 import { getDailyHistory, getNdviSeries, getRecentForecastMany, gridKey, mergeHistoryAndForecast, type NdviSample } from "../live/history";
 import { clamp, percentileRank } from "./risk-math";
+import { restore, track } from "../persist";
 
 export type ClaimPeril = "flood" | "excess_rain" | "drought" | "heat" | "cyclone";
 
@@ -136,7 +137,9 @@ const pctTxt = (p: number) => `P${Math.round(p)}`;
 // ─── Orchestration ────────────────────────────────────────────────────────
 
 const g = globalThis as unknown as { __agriClaims?: ClaimValidation[] };
-const claimsStore = () => (g.__agriClaims ??= []);
+const CLAIMS_VERSION = 1;
+track("claims", CLAIMS_VERSION, () => g.__agriClaims);
+const claimsStore = () => (g.__agriClaims ??= restore<ClaimValidation[]>("claims", CLAIMS_VERSION, Array.isArray) ?? []);
 
 export function listClaims(workspaceId: string) {
   return claimsStore()

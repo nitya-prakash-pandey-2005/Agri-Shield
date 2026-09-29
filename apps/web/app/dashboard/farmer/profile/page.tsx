@@ -12,6 +12,7 @@ import { useI18n } from "@/lib/i18n/I18nProvider";
 import { HudButton, Panel, SectionHeader, Skeleton, SourceTag } from "@/components/hud";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { CROPS, CropIcon } from "@/components/farmer/crops";
+import { PushNotificationsCard } from "@/components/pwa/PushNotificationsCard";
 
 const inputCls = "min-h-[44px] w-full rounded-lg border border-slate-700 bg-slate-900/70 px-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500/60 focus:outline-none";
 
@@ -310,6 +311,7 @@ export default function FarmerProfilePage() {
         <div className="space-y-4 lg:col-span-3">
           <FarmDetails />
           <Notifications />
+          <PushNotificationsCard />
         </div>
         <div className="space-y-4 lg:col-span-2">
           <Panel title={t("common.language")} icon={Globe2}>

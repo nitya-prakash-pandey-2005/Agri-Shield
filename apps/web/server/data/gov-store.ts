@@ -12,6 +12,7 @@
 import type { AlertChannel, AlertSeverity, AlertType, SupportedLanguage } from "@agri-shield/types";
 import { bus, type RealtimeEnvelope } from "../realtime";
 import { getStore } from "./store";
+import { omitKeys, restoreInto, track } from "../persist";
 
 export interface DeliveryRecord {
   id: string;
@@ -118,9 +119,14 @@ interface GovState {
 
 const g = globalThis as unknown as { __agriGov?: GovState };
 
+const GOV_VERSION = 1;
+/** `listening` tracks this process's bus subscription — never saved. */
+track("gov", GOV_VERSION, () => g.__agriGov && omitKeys(g.__agriGov, ["listening"]));
+
 export function govState(): GovState {
   if (!g.__agriGov) {
-    g.__agriGov = { deliveries: [], rules: {}, escalations: [], scheduled: [], dispatch: {}, escalatedAt: {}, lastEscalationRun: {}, listening: false };
+    const fresh: GovState = { deliveries: [], rules: {}, escalations: [], scheduled: [], dispatch: {}, escalatedAt: {}, lastEscalationRun: {}, listening: false };
+    g.__agriGov = restoreInto("gov", GOV_VERSION, fresh, ["deliveries", "rules", "escalations", "scheduled", "dispatch", "escalatedAt", "lastEscalationRun"]);
   }
   const s = g.__agriGov;
   if (!s.listening) {

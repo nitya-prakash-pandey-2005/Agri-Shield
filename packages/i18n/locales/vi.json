@@ -936,5 +936,30 @@
         "answered": "Đã trả lời"
       }
     }
+  },
+  "push": {
+    "title": "Thông báo trên điện thoại",
+    "subtitle": "Cảnh báo trên thiết bị này, kể cả khi ứng dụng đã đóng",
+    "statusOn": "Đang bật trên thiết bị này",
+    "statusOff": "Đang tắt trên thiết bị này",
+    "statusBlocked": "Bị trình duyệt chặn",
+    "statusUnsupported": "Không khả dụng tại đây",
+    "enable": "Bật trên thiết bị này",
+    "disable": "Tắt",
+    "test": "Gửi thử",
+    "devices": "Thiết bị của bạn",
+    "thisDevice": "Thiết bị này",
+    "remove": "Xóa thiết bị",
+    "noDevices": "Chưa có thiết bị nào. Bật thông báo để nhận cảnh báo lũ ngay lập tức.",
+    "lastDelivered": "Gửi lần cuối {when}",
+    "added": "Đã thêm {when}",
+    "iosHint": "Trên iPhone hoặc iPad: nhấn Chia sẻ, rồi Thêm vào MH chính. Mở Agri-SHIELD từ Màn hình chính và bật thông báo tại đây (iOS 16.4 trở lên).",
+    "deniedHint": "Thông báo đang bị chặn cho trang này. Hãy cho phép trong cài đặt trang của trình duyệt, rồi tải lại trang.",
+    "insecureHint": "Thông báo cần kết nối HTTPS an toàn.",
+    "unsupportedHint": "Hãy dùng Chrome, Edge, Firefox hoặc Safari để nhận cảnh báo dưới dạng thông báo.",
+    "enabled": "Đã bật thông báo trên thiết bị này",
+    "disabled": "Đã tắt thông báo trên thiết bị này",
+    "testSent": "Đã gửi thử tới {count} thiết bị",
+    "failed": "Không thể bật thông báo"
   }
 }

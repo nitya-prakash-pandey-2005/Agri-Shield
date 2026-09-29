@@ -14,6 +14,7 @@ import { routeQuestion, type Lexicon, type RoutedPlan } from "./intent";
 import { llmConfig, runLlm } from "./llm";
 import { TOOLS } from "./tools";
 import type { CopilotAnswer, CopilotContext, ToolCall, ToolOutput } from "./types";
+import { restore, track } from "../../persist";
 
 export type { CopilotAnswer, CopilotContext } from "./types";
 export { llmConfig } from "./llm";
@@ -21,7 +22,10 @@ export { llmConfig } from "./llm";
 // ─── History (per user, in memory) ───────────────────────────────────────
 
 const g = globalThis as unknown as { __copilotHistory?: Map<string, CopilotAnswer[]> };
-const HISTORY: Map<string, CopilotAnswer[]> = (g.__copilotHistory ??= new Map());
+const COPILOT_HISTORY_VERSION = 1;
+track("copilot.history", COPILOT_HISTORY_VERSION, () => g.__copilotHistory);
+const HISTORY: Map<string, CopilotAnswer[]> = (g.__copilotHistory ??=
+  restore<Map<string, CopilotAnswer[]>>("copilot.history", COPILOT_HISTORY_VERSION, (v) => v instanceof Map) ?? new Map());
 const MAX_HISTORY = 40;
 const hkey = (userId: string, orgId: string) => `${userId}::${orgId}`;
 

@@ -8,6 +8,7 @@
  *     with exponential backoff — 1, 2, 4 min — up to 3 attempts, then dead-letters.
  */
 import { outbox, recordAppPush, sendEmail, sendSms, sendWhatsApp, type OutboxMessage } from "../notify/channels";
+import { firePushToUser } from "../notify/webpush";
 import type { JobResult } from "./registry";
 
 export interface PendingDelivery {
@@ -62,8 +63,12 @@ async function deliver(d: PendingDelivery): Promise<OutboxMessage> {
       return sendWhatsApp(d.to, d.body);
     case "email":
       return sendEmail(d.to, d.subject ?? d.body.slice(0, 80), `<p>${d.body.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!)}</p>`);
-    default:
+    default: {
+      // `to` is a user id for app deliveries: record in-app + push to their devices
+      const [first, ...rest] = d.body.split("\n");
+      firePushToUser(d.to, { title: rest.length ? first! : "Agri-SHIELD", body: rest.length ? rest.join(" ") : d.body, severity: "watch", tag: `dlv-${d.id}`, url: d.origin === "satellite-ingest" ? "/dashboard/farmer" : "/dashboard/farmer/alerts" });
       return recordAppPush(d.to, d.body);
+    }
   }
 }
 
@@ -74,6 +79,8 @@ export async function notificationDispatch(): Promise<JobResult> {
   let requeued = 0;
   for (const m of outbox) {
     if (m.status !== "failed" || q.retried.has(m.id) || now - m.at.getTime() > 24 * 3_600_000) continue;
+    // Web Push failures are per device: push services store-and-forward (TTL) and dead endpoints are removed
+    if (m.provider === "webpush") continue;
     q.retried.add(m.id);
     const item = enqueueNotification({ channel: m.channel, to: m.to, body: m.body, subject: m.channel === "email" ? m.body : undefined, origin: `retry:${m.provider}` });
     item.attempts = 1; // the original send counts as attempt #1

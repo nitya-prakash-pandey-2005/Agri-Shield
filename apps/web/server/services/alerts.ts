@@ -19,6 +19,7 @@ import { audit, getStore, nextId, type AlertRecord, type DistrictRecord } from "
 import { districtEconomics, SEVERITY_RANK } from "../data/gov-model";
 import { govState, rulesFor, type DeliveryRecord, type EscalationEvent, type EscalationRule, type ScheduledAlert } from "../data/gov-store";
 import { outbox, recordAppPush, sendEmail, sendSms, sendWhatsApp } from "../notify/channels";
+import { firePushToUser } from "../notify/webpush";
 import { publish } from "../realtime";
 import { translate } from "../live/translate";
 import { COUNTRIES } from "../data/geography";
@@ -334,7 +335,12 @@ async function fanout(alert: AlertRecord, d: DistrictRecord, channels: AlertChan
       let body: string;
       if (ch === "sms") rec = await sendSms(to, (body = renderSms(msg)));
       else if (ch === "whatsapp") rec = await sendWhatsApp(to, (body = whatsAppText(msg)));
-      else rec = recordAppPush(to, (body = `${renderApp(msg).title}\n${renderApp(msg).body}`));
+      else {
+        const app = renderApp(msg);
+        rec = recordAppPush(to, (body = `${app.title}\n${app.body}`));
+        // Device notification (Web Push): fire-and-forget, never delays the broadcast
+        firePushToUser(u!.id, { title: app.title, body: app.body, severity: alert.severity, tag: alert.id, alertId: alert.id, url: "/dashboard/farmer/alerts" });
+      }
       out.push(mk({ recipientId: f.id, recipientKind: "farmer", recipientName: u!.name, channel: ch, language: u!.language, to, body, count: 1, status: rec.status, provider: rec.provider, messageId: rec.id }));
     }
   }

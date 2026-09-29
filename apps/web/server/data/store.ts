@@ -63,6 +63,7 @@ import {
   type WorkspaceSettings,
   type WorkspaceUsage,
 } from "./seed-assets";
+import { restore, track } from "../persist";
 
 export type { AlertRuleRecord, AssetRecord, AssetAssessment, NotificationRecord, RuleMetric, WorkspaceSettings, WorkspaceUsage } from "./seed-assets";
 
@@ -1162,8 +1163,34 @@ function seed(): Store {
 
 const g = globalThis as unknown as { __agriStore?: Store };
 
+/** Bump when the Store shape changes incompatibly: old snapshots are then ignored and re-seeded. */
+const STORE_VERSION = 1;
+/** Every top-level Store field (compile-time exhaustive) — used to back-fill fields missing from an older snapshot. */
+const STORE_FIELDS: Record<keyof Store, true> = {
+  seededAt: true, users: true, orgs: true, districts: true, farmers: true, fields: true, alerts: true, recommendations: true,
+  farmerActions: true, inventory: true, resourceRequests: true, nodes: true, flows: true, commodities: true, webhooks: true,
+  apiKeys: true, audit: true, flags: true, subscriptions: true, assets: true, alertRules: true, notifications: true, counters: true, scenario: true,
+};
+
+/** Last saved store (server/persist), with any field added since back-filled from a fresh seed. */
+function restoreStore(): Store | undefined {
+  const saved = restore<Partial<Store>>("core", STORE_VERSION, (v) => {
+    const x = v as Partial<Store>;
+    return !!x && typeof x === "object" && x.seededAt instanceof Date && Array.isArray(x.users) && Array.isArray(x.orgs) && Array.isArray(x.alerts);
+  });
+  if (!saved) return undefined;
+  const missing = (Object.keys(STORE_FIELDS) as (keyof Store)[]).filter((k) => saved[k] === undefined);
+  if (missing.length) {
+    const fresh = seed();
+    for (const k of missing) (saved as Record<string, unknown>)[k] = fresh[k];
+  }
+  return saved as Store;
+}
+
+track("core", STORE_VERSION, () => g.__agriStore);
+
 export function getStore(): Store {
-  if (!g.__agriStore) g.__agriStore = seed();
+  if (!g.__agriStore) g.__agriStore = restoreStore() ?? seed();
   return g.__agriStore;
 }
 

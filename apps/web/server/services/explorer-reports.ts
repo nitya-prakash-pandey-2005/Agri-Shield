@@ -5,13 +5,14 @@
  * data changes. Ids are unguessable (random, 12 chars) — the link is the key.
  */
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { LocationRiskReport } from "./location-risk";
 import type { ClimateHistory, ClimateProjection, DroughtIndex, SeasonalOutlook } from "../live/climate";
 
 import type { AssetType } from "@agri-shield/types";
+import { markDirty, restore, track } from "../persist";
 export type { AssetType };
 
 export interface SavedReport {
@@ -34,20 +35,34 @@ export interface SavedReport {
 }
 
 const g = globalThis as unknown as { __agriSharedReports?: Map<string, SavedReport>; __agriSharedLoaded?: boolean };
-const reports: Map<string, SavedReport> = (g.__agriSharedReports ??= new Map());
+// Saved by the persistence layer (server/persist) so links survive a restart. Snapshots are
+// large and change rarely, so the key is flushed only when marked dirty (not on every tick).
+const SHARED_REPORTS_KEY = "explorer.reports";
+const SHARED_REPORTS_VERSION = 1;
+track(SHARED_REPORTS_KEY, SHARED_REPORTS_VERSION, () => g.__agriSharedReports, { explicit: true });
+const reports: Map<string, SavedReport> = (g.__agriSharedReports ??= (() => {
+  const saved = restore<Map<string, SavedReport>>(SHARED_REPORTS_KEY, SHARED_REPORTS_VERSION, (v) => v instanceof Map);
+  if (saved) g.__agriSharedLoaded = true; // restored — skip the legacy import below
+  return saved ?? new Map();
+})());
+const changed = () => markDirty(SHARED_REPORTS_KEY);
 
-// Snapshots are also written to disk so links survive a server restart (swap for the DB in production).
-const DIR = join(process.env.AGRI_CACHE_DIR ?? join(tmpdir(), "agri-shield-cache"), "shared-reports");
+/** Legacy per-file location (before server/persist): imported once, then saved by the persistence layer. */
+const LEGACY_DIR = join(process.env.AGRI_CACHE_DIR ?? join(tmpdir(), "agri-shield-cache"), "shared-reports");
 const revive = (raw: SavedReport): SavedReport => ({ ...raw, createdAt: new Date(raw.createdAt) });
 function loadFromDisk() {
   if (g.__agriSharedLoaded || process.env.AGRI_OFFLINE === "true") return;
   g.__agriSharedLoaded = true;
+  let imported = 0;
   try {
-    for (const f of readdirSync(DIR)) {
+    for (const f of readdirSync(LEGACY_DIR)) {
       if (!f.endsWith(".json")) continue;
       try {
-        const r = revive(JSON.parse(readFileSync(join(DIR, f), "utf8")) as SavedReport);
-        if (!reports.has(r.id)) reports.set(r.id, r);
+        const r = revive(JSON.parse(readFileSync(join(LEGACY_DIR, f), "utf8")) as SavedReport);
+        if (!reports.has(r.id)) {
+          reports.set(r.id, r);
+          imported++;
+        }
       } catch {
         /* skip corrupt file */
       }
@@ -55,15 +70,7 @@ function loadFromDisk() {
   } catch {
     /* no directory yet */
   }
-}
-function persist(r: SavedReport) {
-  if (process.env.AGRI_OFFLINE === "true") return;
-  try {
-    mkdirSync(DIR, { recursive: true });
-    writeFileSync(join(DIR, `${r.id}.json`), JSON.stringify(r));
-  } catch {
-    /* read-only FS: memory only */
-  }
+  if (imported) changed();
 }
 
 export function newReportId(): string {
@@ -73,7 +80,7 @@ export function newReportId(): string {
 export function saveSnapshot(r: Omit<SavedReport, "id" | "createdAt" | "views">): SavedReport {
   const rec: SavedReport = { ...r, id: newReportId(), createdAt: new Date(), views: 0 };
   reports.set(rec.id, rec);
-  persist(rec);
+  changed();
   // bound memory: keep the newest 2 000 snapshots
   if (reports.size > 2000) reports.delete(reports.keys().next().value!);
   return rec;
@@ -82,7 +89,10 @@ export function saveSnapshot(r: Omit<SavedReport, "id" | "createdAt" | "views">)
 export function getSnapshot(id: string, countView = false): SavedReport | null {
   loadFromDisk();
   const r = reports.get(id) ?? null;
-  if (r && countView) r.views++;
+  if (r && countView) {
+    r.views++;
+    changed();
+  }
   return r;
 }
 
@@ -94,12 +104,9 @@ export function listSnapshots(orgId: string): SavedReport[] {
 export function deleteSnapshot(orgId: string, id: string): boolean {
   const r = reports.get(id);
   if (!r || r.orgId !== orgId) return false;
-  try {
-    unlinkSync(join(DIR, `${id}.json`));
-  } catch {
-    /* not on disk */
-  }
-  return reports.delete(id);
+  reports.delete(id);
+  changed();
+  return true;
 }
 
 // ─── Anonymous (public /explore) quota: N reports per hour per IP ────────

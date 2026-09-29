@@ -68,7 +68,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@agri-shield/db", "@agri-shield/types"],
   // BullMQ loads Lua scripts from its package dir at runtime — never bundle it.
-  serverExternalPackages: ["bullmq", "ioredis"],
+  // web-push is Node-only (crypto/https): load it with require() on the server.
+  serverExternalPackages: ["bullmq", "ioredis", "web-push"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co" },

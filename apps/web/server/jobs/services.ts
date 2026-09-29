@@ -8,6 +8,7 @@ import type { AlertChannel, AlertSeverity, AlertType } from "@agri-shield/types"
 import { getStore, nextId, type AlertRecord } from "../data/store";
 import { publish } from "../realtime";
 import { recordAppPush } from "../notify/channels";
+import { firePushToUser } from "../notify/webpush";
 
 export interface BroadcastInput {
   alertType: AlertType;
@@ -77,7 +78,10 @@ function fallbackBroadcast(i: BroadcastInput): AlertRecord[] {
       deliveries: { sent: farmers.length, delivered: farmers.length, read: 0, actioned: 0 },
     };
     s.alerts.unshift(alert);
-    for (const f of farmers) recordAppPush(f.userId, `${i.title}: ${i.recommendedActions[0] ?? ""}`);
+    for (const f of farmers) {
+      recordAppPush(f.userId, `${i.title}: ${i.recommendedActions[0] ?? ""}`);
+      firePushToUser(f.userId, { title: i.title, body: i.recommendedActions[0] ?? i.description, severity: i.severity, tag: alert.id, alertId: alert.id, url: "/dashboard/farmer/alerts" });
+    }
     publish(`district:${did}`, { type: "alert.created", alertId: alert.id, districtId: did, severity: i.severity, title: i.title, alertType: i.alertType });
     return alert;
   });

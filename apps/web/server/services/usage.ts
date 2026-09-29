@@ -14,6 +14,7 @@ import { TRPCError } from "@trpc/server";
 import type { SubscriptionPlan } from "@agri-shield/types";
 import { getStore, nextId, type OrgRecord, type WorkspaceUsage } from "../data/store";
 import { notifyWorkspace } from "./workspace-notifications";
+import { restore, track } from "../persist";
 
 export type UsageKind = "assessments" | "apiCalls" | "reports" | "messages";
 export type LimitKind = UsageKind | "seats" | "assets";
@@ -108,8 +109,17 @@ export function effectivePlan(org: Pick<OrgRecord, "planTier" | "trialEndsAt">, 
 // ─── Store-backed API ─────────────────────────────────────────────────────
 
 const g = globalThis as unknown as { __agriUsageLedger?: Map<string, Map<string, Record<UsageKind, number>>>; __agriUsageWarned?: Set<string> };
-const ledger = (g.__agriUsageLedger ??= new Map());
-const warned = (g.__agriUsageWarned ??= new Set());
+const USAGE_VERSION = 1;
+const savedUsage =
+  g.__agriUsageLedger && g.__agriUsageWarned
+    ? undefined
+    : restore<{ ledger: Map<string, Map<string, Record<UsageKind, number>>>; warned: Set<string> }>("usage", USAGE_VERSION, (v) => {
+        const x = v as { ledger?: unknown; warned?: unknown };
+        return x.ledger instanceof Map && x.warned instanceof Set;
+      });
+const ledger = (g.__agriUsageLedger ??= savedUsage?.ledger ?? new Map());
+const warned = (g.__agriUsageWarned ??= savedUsage?.warned ?? new Set());
+track("usage", USAGE_VERSION, () => (g.__agriUsageLedger ? { ledger: g.__agriUsageLedger, warned: g.__agriUsageWarned ?? new Set() } : undefined));
 
 function orgOf(orgId: string): OrgRecord | undefined {
   return getStore().orgs.find((o) => o.id === orgId);

@@ -9,6 +9,9 @@
  *       (the top-bar bell listens there and increments live)
  *     → for severity "critical" (or `email: true`) also e-mails the workspace
  *       members through server/notify/channels.ts (Resend, or the outbox)
+ *     → for fired alert rules, warning/critical alerts and anything critical (or
+ *       `push: true`) also sends a Web Push notification to members' subscribed
+ *       devices (server/notify/webpush.ts), deep-linking to `href`
  *
  *   listNotifications / unreadCount / markRead / markAllRead — per-user read state
  *   (`readBy` holds user ids, so one broadcast notification can be read
@@ -17,6 +20,7 @@
 import { getStore, nextId, type NotificationRecord } from "../data/store";
 import { publish, type RealtimeEvent } from "../realtime";
 import { sendEmail } from "../notify/channels";
+import { firePushToOrg, firePushToUser, pushSeverityFor } from "../notify/webpush";
 
 export type NotificationKind = NotificationRecord["kind"];
 export type NotificationSeverity = NotificationRecord["severity"];
@@ -32,6 +36,8 @@ export interface NotifyWorkspaceInput {
   severity: NotificationSeverity;
   /** true = e-mail members; array = e-mail these addresses; default: only for critical */
   email?: boolean | string[];
+  /** Web Push to members' devices; default: rule firings, warning/critical alerts, anything critical */
+  push?: boolean;
 }
 
 /** Realtime payload published on `ws:<orgId>` (cast: the shared RealtimeEvent union predates it). */
@@ -114,6 +120,13 @@ export function notifyWorkspace(input: NotifyWorkspaceInput): NotificationRecord
     const html = emailHtml(rec);
     const subject = `[Agri-SHIELD] ${rec.title}`;
     for (const addr of [...new Set(to)]) void sendEmail(addr, subject, html).catch(() => {});
+  }
+
+  const push = input.push ?? (rec.kind === "rule" || rec.severity === "critical" || (rec.kind === "alert" && rec.severity === "warning"));
+  if (push) {
+    const payload = { title: rec.title, body: rec.body, severity: pushSeverityFor(rec.severity), tag: rec.id, alertId: rec.id, url: rec.href ?? "/app/alerts" };
+    if (rec.userId) firePushToUser(rec.userId, payload);
+    else firePushToOrg(input.workspaceId, payload);
   }
   return rec;
 }

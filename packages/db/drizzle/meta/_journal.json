@@ -15,6 +15,13 @@
       "when": 1790692372300,
       "tag": "0001_saas_tenants",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790699591165,
+      "tag": "0002_app_state",
+      "breakpoints": true
     }
   ]
 }

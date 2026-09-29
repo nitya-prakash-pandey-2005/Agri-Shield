@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { Panel, Skeleton, riskColor } from "@/components/hud";
 import { Explain } from "@/components/help/Explain";
 import { Btn, Field, Toggle, inputCls } from "@/components/workspace/ui";
+import { PushNotificationsCard } from "@/components/pwa/PushNotificationsCard";
 
 const BaseMap = dynamic(() => import("@/components/maps/BaseMap"), { ssr: false, loading: () => <div className="skeleton h-full w-full" /> });
 
@@ -205,6 +206,8 @@ export default function GeneralSettings() {
             </button>
           )}
         </Panel>
+
+        <PushNotificationsCard className="lg:col-span-2" layout="split" />
 
         <Panel title="Default map view" subtitle="Pan and zoom — every map in the workspace opens here" icon={MapIcon} accent="cyan" className="lg:col-span-2" bodyClassName="px-0 pb-0">
           <div className="relative h-72">

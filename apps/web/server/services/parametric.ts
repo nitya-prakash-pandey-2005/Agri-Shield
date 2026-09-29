@@ -32,6 +32,7 @@ import {
 } from "../live/history";
 import { exposurePriors } from "./location-risk";
 import { clamp, empiricalReturnLevel, fitZiln, mean, quantile, spearman, stdev, zilnExceedance, zilnLayerLoss, zilnReturnLevel, type ZilnFit } from "./risk-math";
+import { restore, track } from "../persist";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -605,8 +606,13 @@ function seedProducts(): ParametricProduct[] {
   ];
 }
 
+const PARAMETRIC_VERSION = 1;
+track("parametric", PARAMETRIC_VERSION, () => g.__agriParametric);
+
 function products(): ParametricProduct[] {
   if (!g.__agriParametric) {
+    const saved = restore<ParametricProduct[]>("parametric", PARAMETRIC_VERSION, Array.isArray);
+    if (saved) return (g.__agriParametric = saved);
     g.__agriParametric = seedProducts();
     // Attach the seeded covers to the weather-index plots (BD → excess rain, IN → deficit)
     for (const a of getStore().assets) {

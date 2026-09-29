@@ -18,6 +18,7 @@ import { publish, type RealtimeEvent } from "../realtime";
 import { notifyWorkspace } from "./workspace-notifications";
 import { portfolioState } from "./portfolio";
 import { wsState } from "./workspace-state";
+import { restoreInto, track } from "../persist";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,10 @@ interface CollabState {
 }
 
 const g = globalThis as unknown as { __agriCollab?: CollabState };
-export const collabState: CollabState = (g.__agriCollab ??= { comments: [], presence: new Map(), sweeper: null });
+const COLLAB_VERSION = 1;
+/** Only comments are durable; presence and the sweeper timer are runtime state. */
+track("collab", COLLAB_VERSION, () => g.__agriCollab && { comments: g.__agriCollab.comments });
+export const collabState: CollabState = (g.__agriCollab ??= restoreInto<CollabState>("collab", COLLAB_VERSION, { comments: [], presence: new Map(), sweeper: null }, ["comments"]));
 
 // ─── Members & avatars ────────────────────────────────────────────────────
 

@@ -26,6 +26,7 @@ import { notifyWorkspace } from "./workspace-notifications";
 import { trackUsage } from "./usage";
 import { actorOf, addComment, registerActivitySource, workspaceMembers, type ActivityItem } from "./collab";
 import { SEVERITIES, SEVERITY_META, STATUSES, STATUS_META, HAZARD_META, ROLES, ROLE_META, SLA_TARGETS, statusIndex, canTransition, allowedTransitions, fmtMinutes, incidentMetrics, type Severity, type IncidentStatus, type HazardType, type IncidentRole, type IncidentArea } from "@/components/incidents/meta";
+import { restoreInto, track } from "../persist";
 export * from "@/components/incidents/meta";
 
 // ─── Records ──────────────────────────────────────────────────────────────
@@ -150,7 +151,9 @@ interface IncidentState {
 }
 
 const g = globalThis as unknown as { __agriIncidents?: IncidentState; __agriIncidentListener?: (env: RealtimeEnvelope) => void };
-export const incidentState: IncidentState = (g.__agriIncidents ??= { incidents: [], settings: new Map(), seeded: false, counters: new Map() });
+const INCIDENTS_VERSION = 1;
+track("incidents", INCIDENTS_VERSION, () => g.__agriIncidents);
+export const incidentState: IncidentState = (g.__agriIncidents ??= restoreInto<IncidentState>("incidents", INCIDENTS_VERSION, { incidents: [], settings: new Map(), seeded: false, counters: new Map() }));
 
 export class IncidentError extends Error {
   constructor(

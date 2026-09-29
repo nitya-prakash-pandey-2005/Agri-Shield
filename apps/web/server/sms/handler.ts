@@ -23,6 +23,7 @@ import {
   smsSegments,
   type SmsCommand,
 } from "./commands";
+import { restore, track } from "../persist";
 
 export interface SmsExchange {
   id: string;
@@ -42,8 +43,17 @@ export interface SmsExchange {
 }
 
 const g = globalThis as unknown as { __agriSmsLog?: SmsExchange[]; __agriSmsOptOut?: Set<string> };
-export const smsLog = (g.__agriSmsLog ??= []);
-const optOut = (g.__agriSmsOptOut ??= new Set());
+const SMS_VERSION = 1;
+const savedSms =
+  g.__agriSmsLog && g.__agriSmsOptOut
+    ? undefined
+    : restore<{ log: SmsExchange[]; optOut: Set<string> }>("sms", SMS_VERSION, (v) => {
+        const x = v as { log?: unknown; optOut?: unknown };
+        return Array.isArray(x.log) && x.optOut instanceof Set;
+      });
+export const smsLog = (g.__agriSmsLog ??= savedSms?.log ?? []);
+const optOut = (g.__agriSmsOptOut ??= savedSms?.optOut ?? new Set());
+track("sms", SMS_VERSION, () => (g.__agriSmsLog || g.__agriSmsOptOut ? { log: g.__agriSmsLog ?? [], optOut: g.__agriSmsOptOut ?? new Set() } : undefined));
 
 export function findFarmerByPhone(phone: string) {
   const s = getStore();

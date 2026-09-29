@@ -14,6 +14,7 @@ import { checkSources, summarize } from "../health/sources";
 import { jobOverview, jobRuns, notificationQueue, satelliteStatus, schedulerState, triggerJob, JOB_NAMES, type JobName } from "../jobs";
 import { smsLog, twilioSignature } from "../sms/handler";
 import { normalizePhone } from "../sms/commands";
+import { requestFlush, restore, track } from "../persist";
 
 const proc = permitted("access_admin_panel");
 
@@ -28,7 +29,10 @@ function log(a: Actor, action: string, entity: string, entityId: string, details
 }
 
 const g = globalThis as unknown as { __agriOrgReviews?: Map<string, { decision: "verified" | "rejected"; note: string | null; by: string; at: Date }> };
-const orgReviews = (g.__agriOrgReviews ??= new Map());
+const ORG_REVIEWS_VERSION = 1;
+track("admin.org-reviews", ORG_REVIEWS_VERSION, () => g.__agriOrgReviews);
+const orgReviews = (g.__agriOrgReviews ??=
+  restore<Map<string, { decision: "verified" | "rejected"; note: string | null; by: string; at: Date }>>("admin.org-reviews", ORG_REVIEWS_VERSION, (v) => v instanceof Map) ?? new Map());
 
 /** PSI drift bands (industry convention). */
 export function driftBand(psi: number | undefined | null): "stable" | "moderate" | "significant" | "unknown" {
@@ -467,6 +471,7 @@ export const adminRouter = router({
     const prev = getStore();
     const counts = { alerts: prev.alerts.length, audit: prev.audit.length };
     resetStore();
+    requestFlush(); // save the fresh seed promptly so a restart does not bring the old data back
     invalidateLiveRisk();
     ensureLiveRisk();
     log(actor(ctx), "demo.reset", "store", "all", `Demo data reset (had ${counts.alerts} alerts, ${counts.audit} audit entries)`);

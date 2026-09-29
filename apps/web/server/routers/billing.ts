@@ -16,6 +16,7 @@ import { permitted, protectedProcedure, publicProcedure, router } from "../trpc"
 import { audit, getStore, nextId, type SubscriptionRecord } from "../data/store";
 import { sendEmail } from "../notify/channels";
 import { PLANS, TRIAL_DAYS, minorUnits, planById, priceFor, type BillingInterval, type PlanId } from "@/app/pricing/plans";
+import { restore, track } from "../persist";
 
 const DAY = 86_400_000;
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL ?? "http://localhost:3000";
@@ -58,8 +59,17 @@ export interface LeadRecord {
 }
 
 const g = globalThis as unknown as { __agriBillingMeta?: Map<string, BillingMeta>; __agriLeads?: LeadRecord[] };
-const meta = (g.__agriBillingMeta ??= new Map());
-export const leads = (g.__agriLeads ??= []);
+const BILLING_VERSION = 1;
+const savedBilling =
+  g.__agriBillingMeta && g.__agriLeads
+    ? undefined
+    : restore<{ meta: Map<string, BillingMeta>; leads: LeadRecord[] }>("billing", BILLING_VERSION, (v) => {
+        const x = v as { meta?: unknown; leads?: unknown };
+        return x.meta instanceof Map && Array.isArray(x.leads);
+      });
+const meta = (g.__agriBillingMeta ??= savedBilling?.meta ?? new Map());
+export const leads = (g.__agriLeads ??= savedBilling?.leads ?? []);
+track("billing", BILLING_VERSION, () => (g.__agriBillingMeta || g.__agriLeads ? { meta: g.__agriBillingMeta ?? new Map(), leads: g.__agriLeads ?? [] } : undefined));
 
 const PLAN_MRR: Record<SubscriptionPlan, number> = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499, business: 1490, enterprise: 4900 };
 

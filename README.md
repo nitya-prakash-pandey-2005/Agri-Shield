@@ -112,7 +112,7 @@ Everything runs on **free and open data** (Open-Meteo, Copernicus GloFAS and ERA
 - **Satellite Lab:** before/after swipe and time-lapse of NASA imagery (30 m HLS, MODIS, VIIRS, NDVI), NDVI anomalies and an observed-flood scan of the portfolio.
 
 **Respond**
-- **Alerts & Rules:** a visual IF/THEN rule builder on forecasts *and* live sensor readings. It delivers in-app, by email, SMS or WhatsApp, and to signed webhooks and Slack, with a realtime notification centre.
+- **Alerts & Rules:** a visual IF/THEN rule builder on forecasts *and* live sensor readings. It delivers in-app, by email, SMS or WhatsApp, and to signed webhooks and Slack, with a realtime notification centre. Alerts also arrive as native phone and desktop notifications through standards-based Web Push (VAPID keys in `.env`, no Firebase account needed). Enable them per device under Settings (workspace) or Profile & settings (farmer app).
 - **Incidents:** SEV1–4 incident command with war-rooms, roles, hazard task templates, SLA metrics, stakeholder updates to a public status page and post-incident reviews.
 - **Simulation Lab:** connectivity-aware flood inundation on a real DEM, Holland-model cyclone replays (Amphan, Remal, Fani…) and custom tracks with surge, and drought and heat yield loss, all applied to your own assets.
 - **Anticipatory Action:** trigger protocols, backtests (hit rate, false alarms, lead time), cash-transfer planning and an activation workflow.
@@ -335,6 +335,24 @@ The repository includes:
 - `docker-compose.yml` (web, ML, Postgres/PostGIS, Redis and an optional worker).
 - `.github/workflows/deploy.yml` (Vercel + Railway, gated on secrets).
 
+### Persistence
+
+Application state (users, organisations, alerts, audit log, workspaces, dashboards, incidents, security settings, billing, and so on) is kept in memory and saved by `apps/web/server/persist`, so it survives restarts:
+
+| Setting | Behaviour |
+|---|---|
+| `DATABASE_URL` set | Snapshots are stored in the Postgres table `app_state`, one row per store. The app creates the table if it is missing; the migration is `packages/db/drizzle/0002_app_state.sql`. |
+| No `DATABASE_URL` | Snapshots are written as files to `AGRI_DATA_DIR` (default `apps/web/.data/`, which is git-ignored). Each write goes to a temp file first and is then renamed into place. |
+| `AGRI_PERSIST=off` | Persistence is disabled and state is in-memory only. It is always off under Vitest unless a test turns it on. |
+
+- **Loading:** snapshots are read at server start (`instrumentation.ts`) before any store is created.
+- **Saving:** changed stores are saved every `AGRI_PERSIST_INTERVAL_MS` (default 10 s) and on shutdown.
+- **Schema changes:** each store has a schema version. If the saved version does not match or a snapshot cannot be read, that store falls back to its seed, and an unreadable file is kept as `<key>.corrupt-<ts>.json`.
+- **Status:** `GET /api/v1/health` reports persistence under `web.persistence`.
+- **Reset:** *Admin → Scenario → Reset demo data* re-seeds the core store and saves the fresh data.
+- **Not saved:** caches, rate limits, OTP codes, job history, the IoT demo fleet and raw sensor readings. Devices you register yourself are saved.
+- **Containers:** mount a volume at `AGRI_DATA_DIR` or set `DATABASE_URL`, because a container's filesystem is lost on redeploy.
+
 ---
 
 ## 🧭 Project status & roadmap
@@ -343,7 +361,8 @@ Agri-SHIELD is a **working, end-to-end product demo**. Next steps toward product
 
 - [ ] Wire the app to Postgres/PostGIS. The schema, migrations and RLS already exist; demo state is currently in memory and resets on restart.
 - [ ] Commercial data tier (`OPEN_METEO_API_KEY`) and caching infrastructure for large portfolios.
-- [ ] Server-sent push notifications (FCM / Web Push) and an MQTT broker for sensors.
+- [x] Server-sent push notifications (Web Push with VAPID).
+- [ ] An MQTT broker for sensors.
 - [ ] Model governance with MLflow, plus a photo-based crop disease model.
 - [ ] Lighthouse and accessibility audit, observability (Sentry / PostHog) and load testing.
 - [ ] Partner validation of the credit, insurance and carbon estimates. The app clearly labels these as indicative.

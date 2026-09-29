@@ -50,6 +50,7 @@ import {
   type MetricSnapshot,
   type RuleEvaluation,
 } from "./rules";
+import { omitKeys, restoreInto, track } from "../persist";
 
 // ─── State (in-memory, alongside the store) ───────────────────────────────
 
@@ -101,7 +102,10 @@ interface PortfolioState {
 }
 
 const g = globalThis as unknown as { __agriPortfolio?: PortfolioState };
-export const portfolioState: PortfolioState = (g.__agriPortfolio ??= {
+const PORTFOLIO_VERSION = 1;
+/** `rescoring` holds in-flight promises — runtime only, never saved. */
+track("portfolio", PORTFOLIO_VERSION, () => g.__agriPortfolio && omitKeys(g.__agriPortfolio, ["rescoring"]));
+export const portfolioState: PortfolioState = (g.__agriPortfolio ??= restoreInto<PortfolioState>("portfolio", PORTFOLIO_VERSION, {
   quick: new Map(),
   notes: new Map(),
   firings: [],
@@ -111,7 +115,7 @@ export const portfolioState: PortfolioState = (g.__agriPortfolio ??= {
   rescoring: new Map(),
   autoScoredAt: new Map(),
   digestSent: new Map(),
-});
+}, ["quick", "notes", "firings", "tagMeta", "ruleExtras", "lastRescore", "autoScoredAt", "digestSent"]));
 
 function wsPublish(workspaceId: string, event: Record<string, unknown> & { type: string }) {
   publish(`ws:${workspaceId}`, event as unknown as RealtimeEvent);

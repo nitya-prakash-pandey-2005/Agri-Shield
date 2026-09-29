@@ -11,6 +11,7 @@ import { checkSources, summarize } from "@/server/health/sources";
 import { jobOverview, schedulerState, satelliteStatus } from "@/server/jobs";
 import { outbox } from "@/server/notify/channels";
 import { API_VERSION, json } from "@/server/api/v1";
+import { persistenceSummary } from "@/server/persist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export async function GET(req: Request) {
     bootedAt,
     memoryMb: { rss: Math.round(mem.rss / 1e6), heapUsed: Math.round(mem.heapUsed / 1e6) },
     dataMode: process.env.DATABASE_URL ? "postgres" : "in-memory",
+    persistence: persistenceSummary(),
   };
 
   const store = {

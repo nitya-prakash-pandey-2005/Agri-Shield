@@ -12,6 +12,7 @@
  */
 import type { UserRole } from "@agri-shield/types";
 import type { Permission } from "@/lib/rbac";
+import { restoreInto, track } from "../persist";
 
 export interface RecoveryCode {
   hash: string;
@@ -139,8 +140,16 @@ export interface SecurityState {
 
 const g = globalThis as unknown as { __agriSecurity?: SecurityState };
 
+const SECURITY_VERSION = 1;
+/** Durable parts only: pending challenges, SSO assertions and failure counters are short-lived. */
+const SECURITY_SAVED = ["totp", "sessions", "notBefore", "sso", "policies", "roles", "roleAssignments"] as const satisfies readonly (keyof SecurityState)[];
+track("security", SECURITY_VERSION, () => {
+  const s = g.__agriSecurity;
+  return s && Object.fromEntries(SECURITY_SAVED.map((k) => [k, s[k]]));
+});
+
 export function secState(): SecurityState {
-  return (g.__agriSecurity ??= {
+  return (g.__agriSecurity ??= restoreInto<SecurityState>("security", SECURITY_VERSION, {
     totp: new Map(),
     sessions: new Map(),
     notBefore: new Map(),
@@ -151,7 +160,7 @@ export function secState(): SecurityState {
     roles: [],
     roleAssignments: new Map(),
     failures: new Map(),
-  });
+  }, SECURITY_SAVED));
 }
 
 /** Test helper */

@@ -11,7 +11,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, CheckCheck, ChevronDown, Clock, FlaskConical, History, Inbox, Pencil, Play, Plus, Trash2, Zap } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown, Clock, FlaskConical, History, Inbox, Pencil, Play, Plus, Trash2, Zap, Siren } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, Panel, RiskPill, Skeleton, StatTile } from "@/components/hud";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
@@ -343,6 +343,12 @@ function HistoryTab({ data, loading, highlight }: { data: RouterOutputs["portfol
                         ))}
                       </ul>
                       <p className="mt-2 text-[10px] text-slate-500">“Simulated” = no e-mail/SMS provider key configured; the message is in the delivery outbox.</p>
+                      <Link
+                        href={`/app/incidents?new=1&source=firing&firingId=${encodeURIComponent(f.id)}&title=${encodeURIComponent(f.ruleName)}&severity=${f.severity === "critical" ? "SEV2" : "SEV3"}&assetIds=${encodeURIComponent(f.matches.slice(0, 50).map((m) => m.assetId).join(","))}`}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-400/10 px-2.5 py-1.5 text-[11.5px] font-medium text-rose-200 hover:border-rose-300/60"
+                      >
+                        <Siren size={13} /> Open incident from this firing
+                      </Link>
                     </div>
                   </div>
                 </motion.div>

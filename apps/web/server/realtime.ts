@@ -21,7 +21,15 @@ export type RealtimeEvent =
   | { type: "notification.created"; notificationId: string; workspaceId: string; severity: string; title: string; href?: string | null }
   | { type: "portfolio.rescored"; workspaceId: string; assets: number; at: string }
   | { type: "rule.fired"; ruleId: string; workspaceId: string; assets: number; severity: string; name?: string }
-  | { type: "webhook.delivered"; webhookId: string; deliveryId: string; status: number | null; ok: boolean; event: string };
+  | { type: "webhook.delivered"; webhookId: string; deliveryId: string; status: number | null; ok: boolean; event: string }
+  // ── Incident command & collaboration (rooms: ws:<orgId>, presence:<orgId>:<room>, status:<slug>) ──
+  | { type: "incident.created"; incidentId: string; workspaceId: string; number: number; title: string; severity: string; auto: boolean; by: string }
+  | { type: "incident.updated"; incidentId: string; workspaceId: string; change: string; status: string; severity: string; by: string; text: string }
+  | { type: "incident.update_published"; slug: string; incidentId: string; updateId: string; status: string; title: string }
+  | { type: "comment.created"; commentId: string; workspaceId: string; entityType: string; entityId: string; authorId: string; authorName: string; mentions: string[]; excerpt: string }
+  | { type: "comment.changed"; commentId: string; workspaceId: string; entityType: string; entityId: string; deleted: boolean }
+  | { type: "presence.updated"; room: string; workspaceId: string; users: { userId: string; name: string; initials: string; color: string; since: string }[] }
+  | { type: "presence.typing"; room: string; workspaceId: string; userId: string; name: string; typing: boolean };
 
 export interface RealtimeEnvelope {
   room: string;

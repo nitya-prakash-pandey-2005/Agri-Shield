@@ -6,13 +6,15 @@
  * rule metrics, the full location report on demand, rules that apply,
  * firing history, district alerts, notes and edit.
  */
+import { Comments } from "@/components/collab";
+import { PresenceAvatars } from "@/components/collab/PresenceAvatars";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Archive, ArrowLeft, Bell, Compass, Droplets, FileText, Flame, History, Info, MessageSquare, Pencil, RefreshCw, RotateCcw, Satellite, Sprout, Sun, Trash2, Waves, Zap } from "lucide-react";
+import { Archive, ArrowLeft, Bell, Compass, Droplets, FileText, Flame, History, Info, MessageSquare, MessagesSquare, Pencil, RefreshCw, RotateCcw, Satellite, Sprout, Sun, Trash2, Waves, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, Meter, Panel, RiskPill, Skeleton, SourceTag } from "@/components/hud";
 import { cn } from "@/lib/utils";
@@ -505,6 +507,10 @@ export default function AssetPage() {
               <dd className="text-slate-300">{new Date(a.createdAt).toISOString().slice(0, 10)}</dd>
             </dl>
           </div>
+        </Panel>
+
+        <Panel title="Discussion" subtitle="Comment and @mention teammates — they're notified instantly" icon={MessagesSquare} accent="cyan" actions={<PresenceAvatars room={`asset:${a.id}`} />}>
+          <Comments entityType="asset" entityId={a.id} />
         </Panel>
       </div>
 

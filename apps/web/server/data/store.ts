@@ -79,7 +79,7 @@ export interface DistrictRecord extends DistrictDef {
   riverDischargeM3s: number | null;
   riverDischargeMeanM3s: number | null;
   seaLevelAnomalyM: number | null;
-  liveSource: "seed" | "open-meteo";
+  liveSource: "seed" | "open-meteo" | "ml-model";
   lastUpdated: Date;
   historicalFloods: { year: number; month: string; areaHa: number; lossUsd: number; farmsAffected: number }[];
 }

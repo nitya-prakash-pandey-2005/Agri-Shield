@@ -26,6 +26,8 @@ function describe(env: RealtimeEnvelope): { text: string; color: string; icon: t
       return { text: `Climate scan complete · ${e.alertsCreated} new alert(s)`, color: "#a78bfa", icon: Activity };
     case "sms.inbound":
       return { text: `Inbound SMS ${e.command} from ${e.from}`, color: "#94a3b8", icon: Activity };
+    case "alert.escalated":
+      return { text: `ESCALATED ${e.from.toUpperCase()} → ${e.to.toUpperCase()} · ${e.title}`, color: "#f87171", icon: ShieldAlert };
   }
 }
 

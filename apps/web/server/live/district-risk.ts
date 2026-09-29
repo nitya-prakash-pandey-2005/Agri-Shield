@@ -7,6 +7,7 @@
 import { getStore, riskLevelFromScore, type DistrictRecord } from "../data/store";
 import { scoreFlood, scoreSalinity } from "../risk/scoring";
 import { getForecast, getRiverDischarge, getSeaLevel } from "./open-meteo";
+import { getFloodRisk, getSalinityRisk, mlHealth } from "../ml-client";
 
 const g = globalThis as unknown as { __agriRiskRefresh?: { at: number; running: Promise<void> | null } };
 const state = (g.__agriRiskRefresh ??= { at: 0, running: null });
@@ -90,6 +91,10 @@ async function refresh(): Promise<void> {
     d.lastUpdated = new Date();
   });
 
+  // In live mode, prefer the trained models (calibrated on ERA5 + GloFAS history)
+  // so every portal shows the same numbers the farmer dashboard gets from the ML API.
+  if (store.scenario.mode === "live") await overlayModelOutputs(store.districts);
+
   // Propagate district deltas to fields and supply nodes (keeps relative variation)
   for (const field of store.fields) {
     const farmer = store.farmers.find((f) => f.id === field.farmerId);
@@ -107,6 +112,31 @@ async function refresh(): Promise<void> {
     node.salinityRisk = d.salinityRisk;
     node.riskScore = Math.round(node.floodRisk * 0.65 + node.salinityRisk * 0.35);
   }
+}
+
+async function overlayModelOutputs(districts: DistrictRecord[]) {
+  const health = await mlHealth();
+  if (!health.up) return;
+  const queue = [...districts];
+  const worker = async () => {
+    for (let d = queue.shift(); d; d = queue.shift()) {
+      const [fl, sa] = await Promise.allSettled([getFloodRisk(d.lat, d.lon, d.floodExposure), getSalinityRisk(d.lat, d.lon, "rice", d.salinityExposure)]);
+      if (fl.status === "fulfilled" && fl.value.source === "ml-api") {
+        d.floodProb24h = fl.value.probability_24h;
+        d.floodProb48h = fl.value.probability_48h;
+        d.floodProb72h = fl.value.probability_72h;
+        d.floodRisk = Math.round(fl.value.probability_72h * 100);
+        d.liveSource = "ml-model";
+      }
+      if (sa.status === "fulfilled" && sa.value.source === "ml-api") {
+        d.ecCurrent = sa.value.ec_current;
+        d.ecPredicted30d = sa.value.ec_predicted_30d;
+        d.salinityRisk = Math.round(Math.min(1, Math.max(0, sa.value.ec_predicted_30d / 9)) * 100);
+      }
+      d.riskLevel = riskLevelFromScore(Math.max(d.floodRisk, d.salinityRisk * 0.9));
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
 /** Force the next ensureLiveRisk() call to refresh (e.g. after a scenario change). */

@@ -1,181 +1,357 @@
-# Agri-SHIELD
+<div align="center">
 
-**Climate decision intelligence for the farmers, governments and supply chains of Asia's deltas.**
+# 🌾 Agri-SHIELD
 
-Agri-SHIELD turns live climate data into role-specific, actionable decisions about the two slow- and fast-moving threats that destroy the most crops in South and Southeast Asia: **flooding** and **saltwater intrusion**. It covers 22 districts across five of the most exposed regions: the Ganges–Brahmaputra delta (Bangladesh), the Mekong Delta (Vietnam), Central Luzon (Philippines), the Odisha coast (India) and the Java north coast (Indonesia).
+### Climate decision intelligence for the farmers, insurers, lenders, governments and supply chains of Asia's deltas
 
-> Act before the flood hits. Save before the salt spreads.
+**Act before the flood hits. Save before the salt spreads.**
 
-Built by **Nitya Prakash Pandey** for the Asian Hackathon for Green Future 2026 (Water Resources & Climate-Resilient Agriculture track).
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](LICENSE)
+![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-ML%20service-009688?logo=fastapi&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-733%20web%20%2B%2068%20ML%20passing-22c55e)
+![Open data](https://img.shields.io/badge/data-100%25%20free%20%26%20open-38bdf8)
+
+<img src="docs/screenshots/landing.jpg" alt="Agri-SHIELD landing page with a live 3D globe of district risk" width="100%" />
+
+</div>
 
 ---
 
-## What it does
+Agri-SHIELD is a multi-tenant **climate-risk SaaS platform** that turns live weather forecasts, river-flow models, satellite imagery and machine learning into decisions people can act on. It targets the two hazards that destroy the most crops in South and Southeast Asia, **flooding** and **saltwater intrusion**, along with drought, heat and cyclones.
 
-Agri-SHIELD is a multi-tenant SaaS platform. Each customer organisation gets its own **workspace** (`/app`) tailored to its industry, plus dedicated portals for farmers and governments.
+Each customer gets a workspace built around their own job:
+- an insurer prices and monitors crop cover;
+- a bank adjusts credit risk;
+- an NGO releases cash before a flood;
+- a government dispatches pumps;
+- a trader reroutes grain;
+- a farmer knows whether to irrigate or harvest today.
 
-| Module | For | What it does |
+They all share one risk engine that works **for any location on Earth**.
+
+Everything runs on **free and open data** (Open-Meteo, Copernicus GloFAS and ERA5, NASA, NOAA, GDACS, FAO, the World Bank and more), so the whole platform works end to end without a single paid API key.
+
+> Built by **Nitya Prakash Pandey** for the Asian Hackathon for Green Future 2026 (Water Resources & Climate-Resilient Agriculture), and designed to grow into a commercial product.
+
+---
+
+## Contents
+
+- [Product tour](#-product-tour)
+- [Who it's for](#-who-its-for)
+- [Modules](#-modules)
+- [Real data, no paid keys](#-real-data-no-paid-keys)
+- [Science & machine learning](#-science--machine-learning)
+- [Architecture](#-architecture)
+- [Quick start](#-quick-start)
+- [Demo accounts](#-demo-accounts)
+- [APIs & integrations](#-apis--integrations)
+- [Security](#-security)
+- [Testing & quality](#-testing--quality)
+- [Deployment](#-deployment)
+- [Project status & roadmap](#-project-status--roadmap)
+- [Author & license](#-author--license)
+
+---
+
+## 🛰 Product tour
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/workspace-home.jpg" alt="Workspace home" /><br/><b>Workspace home:</b> a plain-language risk briefing written from the portfolio's live scores, with industry-specific KPIs and a setup checklist.</td>
+    <td width="50%"><img src="docs/screenshots/earth-twin.jpg" alt="Earth Twin 3D globe" /><br/><b>Earth Twin:</b> a 3D mission-control globe with assets as risk-coloured pillars, live hazards, 179 real cyclone tracks, a −30 → +16 day time machine and an ops-room wall mode.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/risk-explorer.jpg" alt="Risk Explorer" /><br/><b>Risk Explorer:</b> climate due-diligence for any place on Earth, covering ML flood and salinity, ensemble forecast, 40-year history, 2050 outlook, soil and terrain, all explained in plain words.</td>
+    <td><img src="docs/screenshots/simulation-lab.jpg" alt="Simulation Lab" /><br/><b>Simulation Lab:</b> "what if the water rose 1.5 m?", modelled on a real elevation model with flooded area, assets hit, losses and people affected.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/insurance-designer.jpg" alt="Parametric insurance designer" /><br/><b>Parametric insurance:</b> design a weather-index cover and backtest it on 30+ years of real weather, with burning cost, loss ratio and basis risk.</td>
+    <td><img src="docs/screenshots/lending-credit-risk.jpg" alt="Climate-adjusted credit risk" /><br/><b>Lending & finance:</b> climate-adjusted PD and expected loss for every loan, stress tests and a physical-risk disclosure report.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/copilot.jpg" alt="Copilot" /><br/><b>Copilot:</b> ask "what should I look at right now?" and get answers built only from your own data, as text, tables, maps and charts.</td>
+    <td><img src="docs/screenshots/sensors-iot.jpg" alt="Sensors & IoT" /><br/><b>Sensors & IoT:</b> river gauges and soil probes over REST or LoRaWAN; it tells a real flash flood apart from a broken sensor.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/incidents.jpg" alt="Incident command" /><br/><b>Incident command:</b> SEV1–4 incidents with war-rooms, task templates, SLA timers, @mentions, live presence and a public status page.</td>
+    <td><img src="docs/screenshots/dashboards.jpg" alt="Custom dashboards" /><br/><b>Dashboards:</b> drag-and-resize mission-control screens over live metrics, with share links and TV mode.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/government.jpg" alt="Government command portal" /><br/><b>Government command:</b> district risk on real admin boundaries, resource dispatch, early-warning broadcasts and policy tools.</td>
+    <td align="center"><img src="docs/screenshots/farmer-app.jpg" alt="Farmer mobile app" width="46%" /><br/><b>Farmer app:</b> a mobile, offline-capable PWA in 8 languages covering irrigation, planting, market prices, crop doctor and an AI advisor.</td>
+  </tr>
+</table>
+
+---
+
+## 🎯 Who it's for
+
+| Customer | The job | What Agri-SHIELD gives them |
 | --- | --- | --- |
-| **Risk Explorer** (`/app/explorer`, public `/explore`) | Everyone | Climate due-diligence for **any place on Earth**: ML flood & salinity models, 51-member ensemble forecast, 6-month seasonal outlook, 40-year ERA5 trends and return periods, SPI drought, heat stress, CMIP6 2050 projection, river percentiles, terrain & soil. Live radar, NASA observed-flood, JRC surface-water and 30 m satellite overlays; compare sites, PDF reports, share links |
-| **Portfolio** (`/app/portfolio`) | Insurers, banks, agribusiness, NGOs, co-ops | Import assets (CSV/GeoJSON/address), hourly live re-scoring, value-at-risk by hazard, top movers, concentration, asset pages with satellite imagery |
-| **Alerts & Rules** (`/app/alerts`) | All workspaces | Visual IF/THEN rule builder with dry-run; in-app, email, SMS, WhatsApp, signed webhooks and Slack; realtime notification centre |
-| **Insurance** (`/app/insurance`) | Agri insurers | Parametric product designer **backtested on 30+ years of real weather and river data** with basis-risk checks, live trigger monitor, claims validation from satellite and reanalysis evidence, PML and reinsurance layers |
-| **Lending & Finance** (`/app/finance`) | Banks, MFIs | Climate-adjusted PD / LGD / expected loss per loan with plain-language drivers, stress tests (1-in-50 flood, drought, salinity, 2050), TCFD / IFRS S2 physical-risk disclosure |
-| **Anticipatory Action** (`/app/anticipatory`) | NGOs, governments | Forecast-based trigger protocols, historical backtest (hit rate, false alarms, lead time), pre-arranged cash planning and activation workflow |
-| **Earth Twin** (`/app/twin`, `?mode=wall`) | Ops rooms, executives | 3D mission-control globe: assets as risk-coloured pillars, live hazards, 179 real IBTrACS cyclone tracks, supply flows, real day/night; a −30 → +16 day time machine and an auto-touring wall mode for control-room screens |
-| **Simulation Lab** (`/app/simulate`) | Insurers, lenders, NGOs, governments | What-if physics on your own portfolio: flood inundation on real terrain (0–5 m water rise, connectivity-aware), Holland-model cyclone replays (Amphan, Remal, Fani…) or custom tracks with surge, drought & heat yield loss — with losses, households and credit shocks |
-| **Incidents** (`/app/incidents`) | All workspaces | SEV1–4 incident command opened from alerts, firings or simulations (or automatically): war-room with timeline, roles, task templates, SLA timers, stakeholder updates to a public status page, post-incident review; @mentions and live presence |
-| **Sensors & IoT** (`/app/sensors`) | Co-ops, governments, agribusiness | Water-level, soil-EC, tide and rain devices via REST or LoRaWAN; anomaly detection that separates real events from sensor faults; forecast-vs-observed checks; alert rules on ground-truth readings; browser virtual device |
-| **Satellite Lab** (`/app/imagery`) | Insurers, NGOs | Before/after swipe and time-lapse of NASA imagery (30 m HLS, MODIS, VIIRS, NDVI), NDVI anomaly series, and an observed-flood scan that flags assets under NASA flood pixels |
-| **Yield Forecast** (`/app/yield`) | Insurers, lenders, agribusiness, co-ops | In-season production forecast (P10/P50/P90) from FAOSTAT baselines, a daily FAO-56 water balance on real ERA5 weather, heat, floods, salinity and NDVI — with drivers, weekly evolution, area-yield payout and repayment outlooks |
-| **Sustainability & Carbon** (`/app/sustainability`) | Agribusiness, co-ops, lenders | IPCC 2019 Tier 1 rice methane, AWD adoption tracker and scenarios, N₂O, water footprint, indicative carbon-credit revenue, MRV evidence and ESG PDF packs |
-| **Dashboards** (`/app/dashboards`) | All workspaces | Drag-and-resize dashboard builder over live metrics, industry templates, share links and TV rotation mode |
-| **Copilot** (`/app/copilot`, ⌘/Ctrl+J anywhere) | All workspaces | Ask questions in plain language ("what should I look at right now?", "expected harvest?", "any open incidents?"); answers come from the workspace's own data as text, tables, maps and charts |
-| **Security & Developers** (`/app/settings/security`, `/app/developers`, public `/developers`) | IT & security teams, integrators | Authenticator-app 2-step verification, OIDC single sign-on, session revoke, custom roles, IP allow-lists, audit export; interactive API explorer, usage graphs, webhook inspector, sandbox keys |
-| **Reports & Settings** | All workspaces | Board packs, disclosures and digests (PDF, scheduled); team invites, roles, plans & usage limits, API keys, webhooks, audit log |
-| **Farmer app** (`/dashboard/farmer`) | Smallholders (mobile PWA, 8 languages) | Risk gauges, FAO-56 irrigation scheduler, seasonal planting planner, **real WFP market prices**, crop doctor, farm ledger & insurance enrolment, live radar, AI advisor with voice, ask-an-officer, offline mode |
-| **Government command** (`/dashboard/government`) | Ministries, district officers | Live district risk map on real admin boundaries, resource dispatch, early-warning broadcasts, analytics & PDF reports, policy and budget tools, farmer questions inbox |
-| **Supply-chain intelligence** (`/dashboard/supply-chain`) | Traders, millers, logistics | Network risk, commodity risk with World Bank prices, Monte Carlo disruption scenarios, procurement alternatives |
-| **Mission control** (`/admin`) | Platform operators | Tenants, models & drift, data-source health, jobs, scenario drills, billing, flags, outbox, SMS simulator |
+| **Agri insurers** | Price, monitor and settle crop cover | Parametric product designer backtested on real history, live trigger monitor, satellite and reanalysis **claims validation**, PML and reinsurance layers |
+| **Banks & MFIs** | Lend to farmers without taking blind climate risk | Climate-adjusted **PD / LGD / expected loss** per loan, early-warning watchlists, stress tests, TCFD / IFRS S2 disclosure |
+| **NGOs & humanitarian agencies** | Act before disasters, not after | Forecast-based **anticipatory action** triggers, backtested hit rates, pre-arranged cash planning and an activation workflow |
+| **Governments** | Protect districts and dispatch resources | District risk command centre, resource dispatch, multi-channel **early-warning broadcasts**, analytics and policy briefs |
+| **Agribusiness & traders** | Secure supply and prices | Supply-chain network risk, commodity outlooks, Monte Carlo disruption scenarios, alternative suppliers |
+| **Farmer co-operatives** | Help members farm through climate stress | Member-farm monitoring, yield outlook, rice **carbon (AWD) programme**, field sensors |
+| **Farmers** | Know what to do today | Mobile app in 8 languages: flood and salinity alerts, irrigation and planting advice, real market prices, crop doctor, insurance enrolment, plus an **SMS bot for feature phones** |
 
-Public site: industry solution pages, ROI calculator, capability comparison, demo booking, pricing with Business/Enterprise workspace plans, help centre with a 77-term plain-language glossary, `/status`, `/changelog`, `/trust`, `/docs`.
+---
 
-Farmers with feature phones can use the **SMS bot** (`STATUS`, `ALERT`, `ADVICE`, `HELP`, `LANG bn`, plus local-language keywords).
+## 🧩 Modules
 
-## Real data, no paid keys
+**Monitor**
+- **Earth Twin:** a 3D globe with instanced asset pillars, real district boundaries, live GDACS/NASA hazards, IBTrACS cyclone tracks, commodity flows, a real day/night terminator, a time machine and a wall mode.
+- **Risk Explorer:** a full report for any coordinate. It covers flood (ML), salinity, drought (SPI) and heat (heat index and wet-bulb), a 51-member ensemble forecast, a 6-month seasonal outlook, 40-year ERA5 trends and return periods, a CMIP6 2050 projection, river percentiles, terrain and soil. Reports export as PDF or share links, and a free public version lives at `/explore`.
+- **Portfolio:** import assets from CSV, GeoJSON or addresses. They are re-scored against live data, with value-at-risk by hazard, top movers, concentration and per-asset pages with satellite imagery and discussion threads.
+- **Sensors & IoT:** device registry, REST and LoRaWAN ingest, a physically based simulated fleet, anomaly detection, forecast-vs-observed checks and a browser virtual device.
+- **Satellite Lab:** before/after swipe and time-lapse of NASA imagery (30 m HLS, MODIS, VIIRS, NDVI), NDVI anomalies and an observed-flood scan of the portfolio.
 
-Everything runs end to end on free and open data sources. Every number in the UI carries a source tag.
+**Respond**
+- **Alerts & Rules:** a visual IF/THEN rule builder on forecasts *and* live sensor readings. It delivers in-app, by email, SMS or WhatsApp, and to signed webhooks and Slack, with a realtime notification centre.
+- **Incidents:** SEV1–4 incident command with war-rooms, roles, hazard task templates, SLA metrics, stakeholder updates to a public status page and post-incident reviews.
+- **Simulation Lab:** connectivity-aware flood inundation on a real DEM, Holland-model cyclone replays (Amphan, Remal, Fani…) and custom tracks with surge, and drought and heat yield loss, all applied to your own assets.
+- **Anticipatory Action:** trigger protocols, backtests (hit rate, false alarms, lead time), cash-transfer planning and an activation workflow.
+
+**Industry**
+- **Insurance:** product designer, live trigger monitor, claims validation, book view and PML.
+- **Lending & Finance:** climate-adjusted credit risk, stress tests and disclosure reports.
+- **Yield Forecast:** in-season P10/P50/P90 production with drivers and weekly evolution, plus insurer and lender outlooks.
+- **Sustainability & Carbon:** IPCC Tier 1 rice methane, an AWD adoption tracker, N₂O, water footprint, indicative credits, and MRV and ESG packs.
+
+**Insights**
+- **Dashboards:** widget builder, industry templates, share links, TV rotation and PNG/PDF export.
+- **Reports:** board packs, portfolio summaries, due-diligence reports and disclosures, on demand or scheduled.
+- **Copilot:** a tool-using assistant over the workspace's own data. It works with no API key, and uses OpenAI, Groq or a local Ollama model when one is configured.
+- **Activity:** a unified realtime feed of everything happening in the workspace.
+
+**Portals & platform**
+- **Farmer app**, **Government command centre**, **Supply-chain intelligence** and **Mission control** (platform admin).
+- SaaS foundations: teams and invites, plans and usage limits, API keys, a help centre with a 77-term plain-language glossary, a product tour, and `/status`, `/changelog`, `/trust`, `/developers` and `/docs` pages.
+
+---
+
+## 🌍 Real data, no paid keys
 
 | Source | Used for |
 | --- | --- |
-| [Open-Meteo](https://open-meteo.com) forecast, ERA5 archive, elevation, marine, geocoding (CC BY 4.0) | Hourly rain, soil moisture, temperature, historical weather, sea level (tidal salinity push), terrain |
-| Copernicus **GloFAS v4** via the Open-Meteo Flood API | River discharge forecasts and history |
-| **NASA EONET** and **GDACS** (UN/EC JRC) | Live floods and cyclones across Asia-Pacific |
-| **NASA GIBS**: MODIS true colour, MODIS NDVI, GPM IMERG | Satellite basemaps and the rainfall overlay |
-| **ORNL DAAC MODIS** subsets (MOD13Q1) | Per-district 250 m NDVI for field crop-health and stress detection |
-| ISRIC **SoilGrids** 2.0 (CC BY 4.0) | Soil clay and texture |
-| OpenStreetMap / Overpass (ODbL), Esri basemaps | Rivers and canals near farms, map tiles |
-| **World Bank** Open Data & Pink Sheet (CC BY 4.0) | Crop production context, monthly commodity prices |
-| **WFP** food prices via HDX | Local market prices for farmers |
-| Open-Meteo ensemble, seasonal (ECMWF SEAS5) & CMIP6 climate APIs | Forecast uncertainty, 6-month outlook, 2050 projections |
-| RainViewer, NASA MODIS flood, JRC Global Surface Water, NASA HLS | Live radar, observed flood extent, 40-year water history, 30 m imagery |
-| AWS Terrain Tiles (Terrarium) | Elevation model for flood inundation simulation |
-| NOAA IBTrACS | Historical cyclone best tracks (Earth Twin, cyclone simulator) |
-| FAOSTAT, IPCC 2019 Refinement, FAO-33/56 | Crop yield baselines, emission factors, crop water & yield response |
-| geoBoundaries (CC BY 3.0 IGO / ODbL / PD by country) | Real district boundaries |
-| MyMemory (free) or DeepL | Translating alerts and advisor answers |
+| [Open-Meteo](https://open-meteo.com): forecast, ensemble, seasonal (ECMWF SEAS5), ERA5 archive, CMIP6 climate, marine, elevation, geocoding (CC BY 4.0) | Weather, uncertainty, 6-month outlook, 40-year history, 2050 projections, sea level, terrain |
+| Copernicus **GloFAS v4** (via Open-Meteo) | River discharge forecasts and records |
+| **NASA** GIBS (MODIS, VIIRS, HLS 30 m, IMERG, MODIS flood), EONET · **ORNL DAAC** MODIS NDVI | Satellite imagery, rainfall, observed flood extent, crop health, natural-event feed |
+| **GDACS** (UN / EC JRC) · **NOAA IBTrACS** | Live disaster alerts · historical cyclone best tracks |
+| **JRC** Global Surface Water · **AWS Terrain Tiles** (Terrarium) | 40-year water history · elevation model for flood simulation |
+| **ISRIC SoilGrids** · **FAOSTAT** · **World Bank** (Pink Sheet & open data) | Soil properties · crop yield baselines · commodity prices & production context |
+| **WFP** food prices (via HDX) · **geoBoundaries** · OpenStreetMap / Nominatim | Local market prices · real district boundaries · geocoding & rivers |
+| RainViewer · MyMemory · open.er-api.com | Live radar · translation · FX rates |
 
-Optional integrations switch on when you add keys: an LLM provider for the advisor, Twilio SMS/WhatsApp, Resend email, Stripe/Razorpay billing, DeepL, and Postgres/Redis. See [`.env.example`](.env.example).
+The demo world is also **grounded in real data**:
+- **Flood history:** ~590 real 2019–2026 flood episodes drive the alert history.
+- **Boundaries and prices:** real district boundaries and World Bank prices.
+- **Plausible sizes:** census-based farm sizes, loan sizes and premium rates.
+- **Valid locations:** every coordinate is checked to be on land.
 
-## Machine learning
+Sources and licences are listed in [`apps/web/server/data/real/README.md`](apps/web/server/data/real/README.md).
 
-The ML service (`apps/ml-api`, FastAPI) trains on **7 years of real ERA5 reanalysis and GloFAS river discharge** for all 22 districts (56k district-days). Flood labels come from observed discharge exceedances.
+---
 
-| Model | Held-out test (2024–25) |
+## 🔬 Science & machine learning
+
+The **ML service** (`apps/ml-api`, FastAPI) trains on **7 years of real ERA5 reanalysis and GloFAS river discharge** for 22 districts (56k district-days).
+
+| Model | Performance (held-out 2024–25) |
 | --- | --- |
-| Flood ensemble (temporal MLP + gradient boosting, bootstrap uncertainty, depth head) | AUC 0.97 at 72 h, Brier 0.036, F1 0.76 |
-| Salinity EC regressor (now / +7 / +30 / +90 days) | R² 0.87 at +30 days, RMSE 1.03 dS/m |
-| Supply-chain impact | Monte Carlo (2,000 sims) with FAO crop-loss curves |
-| AI advisor | Retrieval over 34 agronomy documents (FAO, IRRI, national extension guides), pluggable LLM, grounded local composer as fallback |
+| Flood ensemble (temporal MLP + gradient boosting, bootstrap uncertainty, depth head) | **AUC 0.97** at 72 h · Brier 0.036 · F1 0.76 |
+| Salinity EC regressor (now / +7 / +30 / +90 days) | **R² 0.87** at +30 d · RMSE 1.03 dS/m |
+| AI farm advisor | Retrieval over 34 agronomy guides (FAO, IRRI, national extension), pluggable LLM, grounded local composer |
+| Supply-chain impact | Monte Carlo loss distributions with FAO crop-loss curves |
 
-Champion/challenger retraining promotes a new model only if it beats the deployed one. Methodology and honest limitations are in [`apps/ml-api/README.md`](apps/ml-api/README.md) and the in-app docs at `/docs/methodology-flood` and `/docs/methodology-salinity`. For example, the salinity target is semi-synthetic because no free API offers salinity ground truth.
+Established methods used across the platform:
+- **Water and yield:** FAO-56 water balance, FAO-33 yield response (Ky), FAO-29 salt tolerance.
+- **Climate statistics:** Gumbel return periods, SPI drought index, NOAA heat index, Stull wet-bulb.
+- **Hazard models:** Holland (1980) cyclone wind fields, JRC depth-damage curves.
+- **Emissions:** IPCC 2019 Tier 1 rice methane and N₂O.
+- **Risk:** Maas–Hoffman salinity damage, Basel-style expected loss (PD × LGD × EAD).
 
-The web app degrades gracefully. If the ML service is down, it scores risk with the same physics-based formulas directly on live Open-Meteo/GloFAS data.
+Methodology and honest limitations are documented in-app at `/docs` and in [`apps/ml-api/README.md`](apps/ml-api/README.md). For example, the salinity training target is semi-synthetic because no free API provides salinity ground truth.
 
-## Architecture
+---
+
+## 🏗 Architecture
+
+```mermaid
+flowchart LR
+  subgraph Clients
+    W[Workspace app<br/>insurers · banks · NGOs · co-ops]
+    G[Government & supply-chain portals]
+    F[Farmer PWA · 8 languages]
+    S[SMS bot · feature phones]
+    D[Developers · REST API · webhooks]
+  end
+
+  subgraph Web["apps/web · Next.js 15 + tRPC"]
+    R[23 tRPC routers<br/>Zod · RBAC · rate limits]
+    E[Location risk engine<br/>any coordinate on Earth]
+    J[Background jobs<br/>climate scan · portfolio monitor<br/>satellite ingest · IoT · retrain]
+    RT[Realtime bus<br/>SSE + Socket.io]
+  end
+
+  ML["apps/ml-api · FastAPI<br/>flood & salinity models · RAG advisor · Monte Carlo"]
+  DATA[(Free open data<br/>Open-Meteo · GloFAS · ERA5 · NASA<br/>GDACS · IBTrACS · FAO · World Bank)]
+  STORE[(Store<br/>in-memory demo ·<br/>Postgres + PostGIS schema)]
+
+  W & G & F --> R
+  S & D --> R
+  R --> E --> DATA
+  E --> ML --> DATA
+  J --> E
+  R --> STORE
+  J --> RT --> W & G & F
+```
+
+| Layer | Technology |
+| --- | --- |
+| Web | Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Framer Motion |
+| API | tRPC v11 (streamed batches, superjson) · REST `/api/v1` with OpenAPI 3.1 · Zod everywhere |
+| Maps & 3D | Leaflet · three.js / react-three-fiber · d3 · Recharts |
+| Auth & security | NextAuth v5 · phone OTP · TOTP 2FA · OIDC SSO · RBAC + custom roles |
+| ML service | FastAPI · scikit-learn · numpy / pandas · TF-IDF retrieval |
+| Data | In-memory store for demos · Drizzle ORM schema for Postgres 16 + PostGIS (30 tables, RLS policies) |
+| Jobs & realtime | In-process scheduler or BullMQ + Redis · Server-Sent Events + Socket.io |
+| Tooling | pnpm workspaces + Turborepo · Vitest · Playwright · pytest · GitHub Actions · Docker |
 
 ```
 apps/
-  web/        Next.js 15 (App Router, React 19) · tRPC v11 · NextAuth v5 · Tailwind · Framer Motion
-              Leaflet · Recharts · d3 · three.js · Socket.io + SSE realtime · PWA service worker
-  ml-api/     FastAPI · scikit-learn · numpy/pandas · TF-IDF RAG · live open-data features
+  web/        Next.js app: 96 pages, 23 tRPC routers, 17 API routes (~120k lines of TypeScript)
+  ml-api/     FastAPI ML service: models, RAG advisor, Monte Carlo, live features
 packages/
-  db/         Drizzle ORM schema for Postgres 16 + PostGIS (30 tables), migrations, RLS policies
+  db/         Drizzle schema, migrations and RLS policies for Postgres + PostGIS
   types/      Shared TypeScript domain types
-  i18n/       en · hi · bn · vi · fil · id · ta · si (462 keys each)
-scripts/      Postgres seeding, icon generation, ML dataset build & training
-docs/         Product specification
+  i18n/       en · hi · bn · vi · fil · id · ta · si
+scripts/      Data builders (real reference datasets), DB seeding, icon generation, ML training
+docs/         Product specification and screenshots
 ```
 
-- **Demo store.** A deterministic in-memory dataset grounded in real data (real district boundaries, ~590 real 2019–2026 flood episodes, World Bank prices, census-based farm sizes, land-validated coordinates; see `apps/web/server/data/real/README.md`) acts as the system of record in demo mode: 6 tenant workspaces, 457 monitored assets, 50 farmers, 20 supply-chain nodes. Live climate data is layered over it. `pnpm db:setup` provisions the equivalent Postgres/PostGIS database with row-level security.
-- **Background jobs.** A climate scan runs every 30 min and raises alerts from model output. Satellite NDVI ingest runs daily, notification retries every few minutes, and model retraining weekly. Jobs use an in-process scheduler, or BullMQ when `REDIS_URL` is set.
-- **Security.** RBAC with 7 roles, Zod validation on every input, rate limiting, strict CSP/HSTS headers, HMAC-signed webhooks, API keys stored as hashes, and an audit log. See `/docs/security`.
+---
 
-## Getting started
+## 🚀 Quick start
 
-Prerequisites: Node.js 20+, pnpm 9+, Python 3.11+.
+**Prerequisites:** Node.js 20+, pnpm 9+, Python 3.11+.
 
 ```bash
+git clone https://github.com/nitya-prakash-pandey-2005/Agri-Shield.git
+cd Agri-Shield
 pnpm install
-
-# 1. ML service (optional but recommended). Loads trained weights or retrains from the bundled dataset in ~1 min.
-cd apps/ml-api && pip install -r requirements.txt && cd ../..
-pnpm dev:ml                      # http://localhost:8000/docs
-
-# 2. Web app
-pnpm dev:web                     # http://localhost:3000
-# or, with the Socket.io realtime server:
-pnpm dev:realtime
+pip install -r apps/ml-api/requirements.txt
 ```
 
-No `.env` is required. Copy `.env.example` to `.env` to enable optional integrations.
+Run the two services in separate terminals:
 
-> **Data quotas.** The free Open-Meteo tier allows ~10,000 location-calls per day per IP. Agri-SHIELD budgets its scheduled refreshes to stay within it, pauses a provider after HTTP 429 and serves cached or climatological values meanwhile. For production scale set `OPEN_METEO_API_KEY` (commercial tier); the platform switches endpoints automatically and refreshes faster.
+```bash
+pnpm dev:ml      # ML service  → http://localhost:8000  (API docs at /docs)
+pnpm dev:web     # Web app     → http://localhost:3000
+```
 
-### Demo accounts
+No `.env` is required. Copy [`.env.example`](.env.example) to `.env` only to enable optional integrations: LLM providers, Twilio SMS/WhatsApp, Resend email, Stripe/Razorpay, DeepL, Postgres/Redis, or a commercial Open-Meteo key.
 
-All use password `demo2026` except the farmer (OTP `123456`). The sign-in page has one-click buttons for each.
+> **Scenario drills.** Real weather is often calm. To watch the platform respond to a disaster, sign in as `admin@demo.agrishield.io` and open **Admin → Scenario Control → Monsoon surge / Cyclone landfall / Dry-season salinity**. The drill is layered on top of live observations and every module reacts: alerts fire, incidents open and losses update.
 
-| Workspace | Sign in | What you'll see |
-| --- | --- | --- |
-| Agri insurer — Delta Mutual | `insurer@demo.agrishield.io` | 140 group-policy units (~44,500 farmers, $23M insured), parametric designer & claims |
-| Rural bank — MRCB | `bank@demo.agrishield.io` | 160 agri loans, climate-adjusted credit risk, stress tests |
-| NGO — Delta Resilience Foundation | `ngo@demo.agrishield.io` | 48 coastal communities, anticipatory-action triggers |
-| Farmer co-operative — Mahanadi FPC | `coop@demo.agrishield.io` | 90 member farms on the Odisha coast |
-| Agribusiness — AsiaGrain | `supply@demo.agrishield.io` | Supply-chain portal + workspace |
-| Government | `gov@demo.agrishield.io` | National operations centre (Bangladesh) |
-| Farmer | `farmer@demo.agrishield.io` | Mobile farmer app (OTP `123456`) |
-| Platform admin | `admin@demo.agrishield.io` | Mission control |
+> **Data quotas.** The free Open-Meteo tier allows ~10,000 location-calls per day per IP. Agri-SHIELD budgets its background jobs to fit, pauses a provider after HTTP 429 and falls back to cached or climatological values. For production, set `OPEN_METEO_API_KEY`.
 
-New organisations can sign up at `/auth/signup` → *Organisation workspace* (14-day Business trial).
-
-The sign-in page also has one-click demo buttons. Press **Ctrl/⌘ + K** anywhere for the command palette.
-
-### Scenario drills
-
-Real weather is often calm. To see the platform under stress, open **Admin → Scenario Control** and switch from *Live* to *Monsoon surge*, *Cyclone landfall* or *Dry-season salinity*. The drill is injected on top of live observations, and the climate scan then raises alerts, dispatch needs and supply-chain disruptions exactly as it would in a real event.
-
-### Optional: Postgres + Redis
+Optional database:
 
 ```bash
 docker compose up -d postgres redis
-pnpm db:setup                    # migrate + RLS policies + seed (incl. 90 days of ERA5 readings)
+pnpm db:setup        # migrations + row-level security + seed (incl. 90 days of ERA5 readings)
 ```
 
-## Testing
+---
+
+## 👤 Demo accounts
+
+Every account uses password **`demo2026`** except the farmer, who signs in with OTP **`123456`**. The sign-in page also has one-click demo buttons.
+
+| Persona | Email | Try this |
+| --- | --- | --- |
+| Agri insurer (Delta Mutual) | `insurer@demo.agrishield.io` | 140 group policies, ~44,500 farmers, $23M insured → **Insurance**, **Earth Twin**, **Simulation Lab** |
+| Rural bank (MRCB) | `bank@demo.agrishield.io` | 160 agri loans → **Lending & Finance**, **Yield Forecast** |
+| NGO (Delta Resilience Foundation) | `ngo@demo.agrishield.io` | 48 coastal communities → **Anticipatory Action**, **Incidents** |
+| Farmer co-operative (Mahanadi FPC) | `coop@demo.agrishield.io` | 90 member farms → **Sustainability & Carbon**, **Sensors** |
+| Agribusiness (AsiaGrain) | `supply@demo.agrishield.io` | Supply-chain portal + workspace |
+| Government (Bangladesh) | `gov@demo.agrishield.io` | National operations centre |
+| Farmer | `farmer@demo.agrishield.io` or any mobile number | Mobile farmer app (OTP `123456`) |
+| Platform admin | `admin@demo.agrishield.io` | Mission control, scenario drills |
+
+New organisations can sign up at `/auth/signup` → **Organisation workspace** and get a 14-day Business trial.
+
+---
+
+## 🔌 APIs & integrations
+
+- **REST API:** `/api/v1/risk`, `/health`, `/supply-chain/commodity-risk`, `/alerts/webhook`, `/sms/inbound` and `/telemetry` (plus LoRaWAN). The OpenAPI 3.1 spec is at `/api/v1/openapi.json`.
+- **Developer portal:** the public `/developers` page and an in-app **API explorer** (live requests with your key), per-key usage graphs, a webhook inspector and sandbox keys.
+- **Webhooks:** HMAC-SHA256 signed (`X-AgriShield-Signature`), with Slack incoming-webhook support.
+- **ML API:** `/api/ml/flood-risk`, `/salinity-risk`, `/advisor`, `/supply-chain/scenario`, `/metrics` and `/retrain`. Interactive docs are at `:8000/docs`.
+- **Messaging:** Twilio SMS and WhatsApp, Resend email, and an in-app outbox when no keys are set.
+
+---
+
+## 🔒 Security
+
+- **Sign-in:**
+  - Two-step verification with authenticator apps (RFC 6238, recovery codes); admins can make it mandatory.
+  - OIDC single sign-on (PKCE, JWKS signature checks, just-in-time provisioning), with a built-in mock identity provider for demos.
+- **Access control:**
+  - Server-side sessions with instant revoke.
+  - Role-based access with 9 roles plus custom roles.
+  - Per-workspace IP allow-lists.
+- **Protection:**
+  - Zod validation on every input, rate limiting, and strict CSP/HSTS headers.
+  - API keys stored only as hashes, signed webhooks and SSRF guards.
+  - Audit log with export, and a public trust page at `/trust`.
+
+---
+
+## ✅ Testing & quality
 
 ```bash
-pnpm --filter @agri-shield/web test        # 733 Vitest unit/integration tests
+pnpm --filter @agri-shield/web test        # 733 Vitest tests across 51 files
 pnpm test:ml                               # 68 pytest tests (models, API, RAG, Monte Carlo)
-pnpm --filter @agri-shield/web test:e2e    # Playwright: farmer, government, admin, landing, PWA flows
+pnpm --filter @agri-shield/web test:e2e    # Playwright journeys (farmer, government, admin, landing, PWA)
 ```
 
-CI (`.github/workflows/ci.yml`) runs the type-check, both test suites, a production build and the Docker image build on every push.
+TypeScript runs in strict mode with zero errors, and the production build compiles all 128 routes. CI (`.github/workflows/ci.yml`) runs type-checking, both test suites, the production build and the Docker image build on every push.
 
-## API
+---
 
-- REST: `/api/v1/risk`, `/api/v1/health`, `/api/v1/sms/inbound`, `/api/v1/alerts/webhook`, `/api/v1/supply-chain/commodity-risk`. The OpenAPI 3.1 spec is at `/api/v1/openapi.json`.
-- ML: `/api/ml/flood-risk`, `/salinity-risk`, `/advisor`, `/supply-chain/scenario`, `/metrics`, `/retrain`. Interactive docs are at `:8000/docs`.
-- Full reference and integration guide (webhook signature verification in Node and Python) are in-app at `/docs`.
+## ☁️ Deployment
 
-## Deployment
+The repository includes:
+- `vercel.json` for the web app.
+- `apps/web/Dockerfile` and `apps/ml-api/Dockerfile`.
+- `docker-compose.yml` (web, ML, Postgres/PostGIS, Redis and an optional worker).
+- `.github/workflows/deploy.yml` (Vercel + Railway, gated on secrets).
 
-`vercel.json` (web), `apps/web/Dockerfile`, `apps/ml-api/Dockerfile`, `docker-compose.yml` and `.github/workflows/deploy.yml` (Vercel + Railway, gated on secrets) are included.
+---
 
-## Author
+## 🧭 Project status & roadmap
 
-**Nitya Prakash Pandey**, product, design, engineering and ML.
+Agri-SHIELD is a **working, end-to-end product demo**. Next steps toward production:
 
-## License
+- [ ] Wire the app to Postgres/PostGIS. The schema, migrations and RLS already exist; demo state is currently in memory and resets on restart.
+- [ ] Commercial data tier (`OPEN_METEO_API_KEY`) and caching infrastructure for large portfolios.
+- [ ] Server-sent push notifications (FCM / Web Push) and an MQTT broker for sensors.
+- [ ] Model governance with MLflow, plus a photo-based crop disease model.
+- [ ] Lighthouse and accessibility audit, observability (Sentry / PostHog) and load testing.
+- [ ] Partner validation of the credit, insurance and carbon estimates. The app clearly labels these as indicative.
 
-[MIT](LICENSE) © 2026 Nitya Prakash Pandey
+---
+
+## 👤 Author & license
+
+Designed and built by **Nitya Prakash Pandey**.
+
+Released under the [MIT License](LICENSE) © 2026 Nitya Prakash Pandey. Third-party data remains under its own licences (see [data sources](apps/web/server/data/real/README.md)).

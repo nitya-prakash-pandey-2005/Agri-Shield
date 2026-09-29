@@ -78,7 +78,7 @@ export const TEMPLATES: DashboardTemplate[] = [
       tw("kpi", 6, 0, 3, 2, "Rules in alarm", { metric: "active_alerts" }),
       tw("kpi", 9, 0, 3, 2, "Observed flooded (satellite)", { metric: "observed_flooded" }),
       tw("map", 0, 2, 7, 5, "Insured units by composite risk", { metric: "composite", mapMode: "points" }),
-      tw("table", 7, 2, 5, 5, "Plots with the highest value at risk", { metric: "var", limit: 8 }),
+      tw("table", 7, 2, 5, 5, "Insured units with the highest value at risk", { metric: "var", limit: 8 }),
       tw("timeseries", 0, 7, 6, 4, "Book composite trend (30 days)", { series: "composite", days: 30 }),
       tw("bar", 6, 7, 6, 4, "Value at risk by hazard", { dimension: "hazard", measure: "var" }),
       tw("gauge", 0, 11, 3, 4, "% of book at risk", { metric: "pct_at_risk" }),

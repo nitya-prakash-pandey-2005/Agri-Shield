@@ -30,15 +30,16 @@ export function FarmerShell({ children }: { children: ReactNode }) {
   const { t, tx } = useI18n();
   const { data: session } = useSession();
   const utils = trpc.useUtils();
-  const profile = trpc.farmer.getProfile.useQuery(undefined, { retry: false, staleTime: 60_000 });
+  const status = trpc.farmer.onboardingStatus.useQuery(undefined, { staleTime: 60_000 });
+  const profile = trpc.farmer.getProfile.useQuery(undefined, { retry: false, staleTime: 60_000, enabled: status.data?.onboarded === true });
   const alerts = trpc.farmer.getAlerts.useQuery({ category: "all", includeArchived: false }, { staleTime: 60_000, enabled: profile.isSuccess });
   const risk = trpc.farmer.getCurrentRisk.useQuery(undefined, { staleTime: 5 * 60_000, enabled: profile.isSuccess });
   const [online, setOnline] = useState(true);
 
   // New farmers without a profile → onboarding wizard
   useEffect(() => {
-    if (profile.error?.message === "ONBOARDING_REQUIRED") router.replace("/onboarding/farmer");
-  }, [profile.error, router]);
+    if (status.data?.onboarded === false || profile.error?.message === "ONBOARDING_REQUIRED") router.replace("/onboarding/farmer");
+  }, [status.data?.onboarded, profile.error, router]);
 
   useEffect(() => {
     const up = () => {
@@ -196,9 +197,31 @@ export function FarmerShell({ children }: { children: ReactNode }) {
               <Eye size={14} className="shrink-0" /> {t("common.demoPreview")}
             </div>
           )}
-          <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
-            {children}
-          </motion.div>
+          {profile.isSuccess ? (
+            <motion.div key={pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+              {children}
+            </motion.div>
+          ) : (
+            // Hold the page back until we know this farmer has a profile — a brand-new
+            // account is sent to onboarding without firing the page's data queries.
+            <div className="space-y-4" aria-busy="true" aria-live="polite">
+              {profile.error && profile.error.message !== "ONBOARDING_REQUIRED" ? (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                  {profile.error.message}
+                  <button onClick={() => void profile.refetch()} className="ml-3 underline">{t("common.retry")}</button>
+                </div>
+              ) : (
+                <>
+                  <div className="skeleton h-8 w-56 rounded-lg" />
+                  <div className="skeleton h-48 rounded-2xl" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="skeleton h-24 rounded-xl" />
+                    <div className="skeleton h-24 rounded-xl" />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </main>
       </div>
 

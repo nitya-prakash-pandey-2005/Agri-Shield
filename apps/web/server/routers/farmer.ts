@@ -333,6 +333,13 @@ const prefsInput = z.object({
 export const farmerRouter = router({
   ping: proc.query(() => ({ ok: true })),
 
+  /** Non-throwing check the shell runs first, so new farmers go to onboarding without error responses. */
+  onboardingStatus: proc.query(({ ctx }) => {
+    const s = getStore();
+    const has = s.farmers.some((f) => f.userId === ctx.user.id);
+    return { onboarded: has || ctx.user.role !== "farmer" };
+  }),
+
   getProfile: proc.query(({ ctx }) => {
     const { farmer, district, isDemoFallback } = resolveFarmer(ctx.user);
     const s = getStore();

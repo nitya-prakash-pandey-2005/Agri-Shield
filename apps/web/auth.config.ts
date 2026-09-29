@@ -27,6 +27,13 @@ export const authConfig = {
   trustHost: true,
   session: { strategy: "jwt", maxAge: 7 * 24 * 3600 },
   pages: { signIn: "/auth/signin", error: "/auth/signin" },
+  logger: {
+    // A wrong password / OTP is a normal outcome, not a server error — keep logs clean
+    error(error) {
+      if ((error as { type?: string }).type === "CredentialsSignin" || error.name === "CredentialsSignin") return;
+      console.error("[auth]", error);
+    },
+  },
   providers: [],
   callbacks: {
     jwt({ token, user, trigger, session }) {

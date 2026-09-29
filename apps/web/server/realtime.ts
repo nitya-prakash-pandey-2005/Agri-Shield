@@ -12,6 +12,7 @@ import { EventEmitter } from "node:events";
 export type RealtimeEvent =
   | { type: "alert.created"; alertId: string; districtId: string; severity: string; title: string; alertType: string }
   | { type: "alert.actioned"; alertId: string; farmerId: string }
+  | { type: "alert.escalated"; alertId: string; districtId: string; from: string; to: string; title: string }
   | { type: "resource.updated"; requestId: string; status: string }
   | { type: "risk.updated"; districtIds: string[]; at: string }
   | { type: "scan.completed"; alertsCreated: number; at: string }

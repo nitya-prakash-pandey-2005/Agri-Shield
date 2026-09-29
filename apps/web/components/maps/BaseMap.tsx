@@ -2,7 +2,7 @@
 
 /**
  * Shared Leaflet base map with free basemaps + satellite overlays (no keys):
- *   dark      — CARTO Dark Matter (OSM data)
+ *   dark      — Esri World Dark Gray canvas + reference labels
  *   satellite — Esri World Imagery
  *   modis     — NASA GIBS MODIS Terra true colour (yesterday)
  *   ndvi      — NASA GIBS MODIS Terra 8-day NDVI
@@ -23,8 +23,9 @@ const gibsDate = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000
 export const BASEMAPS: Record<Basemap, { label: string; url: string; attribution: string; maxNativeZoom?: number }> = {
   dark: {
     label: "Dark",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors",
+    maxNativeZoom: 16,
   },
   satellite: {
     label: "Satellite",
@@ -44,6 +45,8 @@ export const BASEMAPS: Record<Basemap, { label: string; url: string; attribution
     maxNativeZoom: 9,
   },
 };
+
+const DARK_LABELS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
 
 export const RAIN_OVERLAY = {
   url: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate/default/${gibsDate(1)}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png`,
@@ -69,6 +72,7 @@ export default function BaseMap({
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
   const tileRef = useRef<Leaflet.TileLayer | null>(null);
+  const labelRef = useRef<Leaflet.TileLayer | null>(null);
   const LRef = useRef<typeof Leaflet | null>(null);
   const [current, setCurrent] = useState<Basemap>(basemap);
 
@@ -82,7 +86,8 @@ export default function BaseMap({
       const map = L.map(el.current, { center, zoom, zoomControl: true, attributionControl: true, preferCanvas: true });
       mapRef.current = map;
       const b = BASEMAPS[current];
-      tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18, subdomains: "abcd" }).addTo(map);
+      tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
+      if (current === "dark") labelRef.current = L.tileLayer(DARK_LABELS, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
       L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
       cleanup = onReady?.(map, L);
       setTimeout(() => map.invalidateSize(), 50);
@@ -101,9 +106,12 @@ export default function BaseMap({
     const map = mapRef.current;
     if (!L || !map) return;
     tileRef.current?.remove();
+    labelRef.current?.remove();
+    labelRef.current = null;
     const b = BASEMAPS[current];
-    tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18, subdomains: "abcd" }).addTo(map);
+    tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
     tileRef.current.bringToBack();
+    if (current === "dark") labelRef.current = L.tileLayer(DARK_LABELS, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
   }, [current]);
 
   return (

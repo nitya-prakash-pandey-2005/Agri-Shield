@@ -28,6 +28,8 @@ function describe(env: RealtimeEnvelope): { text: string; color: string; icon: t
       return { text: `Inbound SMS ${e.command} from ${e.from}`, color: "#94a3b8", icon: Activity };
     case "alert.escalated":
       return { text: `ESCALATED ${e.from.toUpperCase()} → ${e.to.toUpperCase()} · ${e.title}`, color: "#f87171", icon: ShieldAlert };
+    default:
+      return { text: e.type, color: "#94a3b8", icon: Activity };
   }
 }
 

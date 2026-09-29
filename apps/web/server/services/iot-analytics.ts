@@ -365,7 +365,11 @@ export function latestSensorMetrics(orgId: string, now = Date.now()): Record<str
   const out: Record<string, AssetSensorMetrics> = {};
   for (const d of orgDevices(orgId)) {
     if (!d.assetId || d.lastSeen == null || now - d.lastSeen > 6 * H) continue;
-    const faulty = new Set(deviceAnomalies(d.id, now - 2 * H).filter((a) => a.cls === "sensor_fault" && (a.kind === "flatline" || a.kind === "spike") && a.end >= (d.lastSeen ?? 0) - 1).map((a) => a.metric));
+    // A fault stays "ongoing" until the sensor has reported cleanly for a while. Detection is
+    // throttled (≤ 1 run / 45 s per device), so the logged fault can end a reading or two
+    // before lastSeen — an exact match would briefly let a stuck value leak into rules.
+    const faultGrace = Math.max(2 * d.intervalSec * 1000, 10 * 60_000);
+    const faulty = new Set(deviceAnomalies(d.id, now - 2 * H).filter((a) => a.cls === "sensor_fault" && (a.kind === "flatline" || a.kind === "spike") && a.end >= d.lastSeen! - faultGrace).map((a) => a.metric));
     const cur = (out[d.assetId] ??= { assetId: d.assetId, water_level_m: null, water_level_rise_6h_m: null, soil_ec: null, soil_moisture: null, tide_level_m: null, rain_24h_mm: null, groundwater_depth_m: null, deviceIds: [], at: new Date(d.lastSeen) });
     cur.deviceIds.push(d.id);
     if (d.lastSeen > cur.at.getTime()) cur.at = new Date(d.lastSeen);

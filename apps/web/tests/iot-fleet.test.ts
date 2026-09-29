@@ -4,7 +4,7 @@
  */
 import { beforeAll, describe, expect, it } from "vitest";
 import { ensureIot, ingest, simulatorState } from "@/server/services/iot-service";
-import { deviceAnomalies, iot, orgDevices, querySeries, registerDevice, statusOf } from "@/server/services/iot-store";
+import { deviceAnomalies, iot, orgDevices, querySeries, registerDevice, statusOf, insertReading } from "@/server/services/iot-store";
 import { deviceHealth, forecastVsObserved, latestSensorMetrics } from "@/server/services/iot-analytics";
 import { getStore } from "@/server/data/store";
 import { haversineKm } from "@/server/services/location-risk";
@@ -72,6 +72,19 @@ describe("demo fleet", () => {
     const stuck = iot.devices.get("dev_bankmek_05")!;
     expect(latestSensorMetrics("org-bank-mekong")[stuck.assetId!]!.soil_ec).toBeNull();
     expect(Object.values(brac).every((m) => m.deviceIds.every((id) => iot.devices.get(id)!.orgId === "org-ngo-brac"))).toBe(true);
+  });
+});
+
+describe("stuck-sensor exclusion is robust to detection throttling", () => {
+  it("keeps a flatlined probe excluded when a new reading lands before detection re-runs", () => {
+    const stuck = iot.devices.get("dev_bankmek_05")!;
+    const before = latestSensorMetrics("org-bank-mekong")[stuck.assetId!]!;
+    expect(before.soil_ec).toBeNull();
+    // Simulate the race: one more (still flat) reading arrives, detection has not run again yet
+    const t = stuck.lastSeen! + stuck.intervalSec * 1000;
+    insertReading(stuck, t, { ...stuck.lastValues }, t);
+    const after = latestSensorMetrics("org-bank-mekong", t)[stuck.assetId!]!;
+    expect(after.soil_ec).toBeNull();
   });
 });
 

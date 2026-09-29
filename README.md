@@ -22,7 +22,16 @@ Agri-SHIELD is a multi-tenant SaaS platform. Each customer organisation gets its
 | **Insurance** (`/app/insurance`) | Agri insurers | Parametric product designer **backtested on 30+ years of real weather and river data** with basis-risk checks, live trigger monitor, claims validation from satellite and reanalysis evidence, PML and reinsurance layers |
 | **Lending & Finance** (`/app/finance`) | Banks, MFIs | Climate-adjusted PD / LGD / expected loss per loan with plain-language drivers, stress tests (1-in-50 flood, drought, salinity, 2050), TCFD / IFRS S2 physical-risk disclosure |
 | **Anticipatory Action** (`/app/anticipatory`) | NGOs, governments | Forecast-based trigger protocols, historical backtest (hit rate, false alarms, lead time), pre-arranged cash planning and activation workflow |
-| **Copilot** (`/app/copilot`, ⌘/Ctrl+J anywhere) | All workspaces | Ask questions in plain language; answers come from the workspace's own data as text, tables, maps and charts |
+| **Earth Twin** (`/app/twin`, `?mode=wall`) | Ops rooms, executives | 3D mission-control globe: assets as risk-coloured pillars, live hazards, 179 real IBTrACS cyclone tracks, supply flows, real day/night; a −30 → +16 day time machine and an auto-touring wall mode for control-room screens |
+| **Simulation Lab** (`/app/simulate`) | Insurers, lenders, NGOs, governments | What-if physics on your own portfolio: flood inundation on real terrain (0–5 m water rise, connectivity-aware), Holland-model cyclone replays (Amphan, Remal, Fani…) or custom tracks with surge, drought & heat yield loss — with losses, households and credit shocks |
+| **Incidents** (`/app/incidents`) | All workspaces | SEV1–4 incident command opened from alerts, firings or simulations (or automatically): war-room with timeline, roles, task templates, SLA timers, stakeholder updates to a public status page, post-incident review; @mentions and live presence |
+| **Sensors & IoT** (`/app/sensors`) | Co-ops, governments, agribusiness | Water-level, soil-EC, tide and rain devices via REST or LoRaWAN; anomaly detection that separates real events from sensor faults; forecast-vs-observed checks; alert rules on ground-truth readings; browser virtual device |
+| **Satellite Lab** (`/app/imagery`) | Insurers, NGOs | Before/after swipe and time-lapse of NASA imagery (30 m HLS, MODIS, VIIRS, NDVI), NDVI anomaly series, and an observed-flood scan that flags assets under NASA flood pixels |
+| **Yield Forecast** (`/app/yield`) | Insurers, lenders, agribusiness, co-ops | In-season production forecast (P10/P50/P90) from FAOSTAT baselines, a daily FAO-56 water balance on real ERA5 weather, heat, floods, salinity and NDVI — with drivers, weekly evolution, area-yield payout and repayment outlooks |
+| **Sustainability & Carbon** (`/app/sustainability`) | Agribusiness, co-ops, lenders | IPCC 2019 Tier 1 rice methane, AWD adoption tracker and scenarios, N₂O, water footprint, indicative carbon-credit revenue, MRV evidence and ESG PDF packs |
+| **Dashboards** (`/app/dashboards`) | All workspaces | Drag-and-resize dashboard builder over live metrics, industry templates, share links and TV rotation mode |
+| **Copilot** (`/app/copilot`, ⌘/Ctrl+J anywhere) | All workspaces | Ask questions in plain language ("what should I look at right now?", "expected harvest?", "any open incidents?"); answers come from the workspace's own data as text, tables, maps and charts |
+| **Security & Developers** (`/app/settings/security`, `/app/developers`, public `/developers`) | IT & security teams, integrators | Authenticator-app 2-step verification, OIDC single sign-on, session revoke, custom roles, IP allow-lists, audit export; interactive API explorer, usage graphs, webhook inspector, sandbox keys |
 | **Reports & Settings** | All workspaces | Board packs, disclosures and digests (PDF, scheduled); team invites, roles, plans & usage limits, API keys, webhooks, audit log |
 | **Farmer app** (`/dashboard/farmer`) | Smallholders (mobile PWA, 8 languages) | Risk gauges, FAO-56 irrigation scheduler, seasonal planting planner, **real WFP market prices**, crop doctor, farm ledger & insurance enrolment, live radar, AI advisor with voice, ask-an-officer, offline mode |
 | **Government command** (`/dashboard/government`) | Ministries, district officers | Live district risk map on real admin boundaries, resource dispatch, early-warning broadcasts, analytics & PDF reports, policy and budget tools, farmer questions inbox |
@@ -50,6 +59,9 @@ Everything runs end to end on free and open data sources. Every number in the UI
 | **WFP** food prices via HDX | Local market prices for farmers |
 | Open-Meteo ensemble, seasonal (ECMWF SEAS5) & CMIP6 climate APIs | Forecast uncertainty, 6-month outlook, 2050 projections |
 | RainViewer, NASA MODIS flood, JRC Global Surface Water, NASA HLS | Live radar, observed flood extent, 40-year water history, 30 m imagery |
+| AWS Terrain Tiles (Terrarium) | Elevation model for flood inundation simulation |
+| NOAA IBTrACS | Historical cyclone best tracks (Earth Twin, cyclone simulator) |
+| FAOSTAT, IPCC 2019 Refinement, FAO-33/56 | Crop yield baselines, emission factors, crop water & yield response |
 | geoBoundaries (CC BY 3.0 IGO / ODbL / PD by country) | Real district boundaries |
 | MyMemory (free) or DeepL | Translating alerts and advisor answers |
 
@@ -143,7 +155,7 @@ pnpm db:setup                    # migrate + RLS policies + seed (incl. 90 days 
 ## Testing
 
 ```bash
-pnpm --filter @agri-shield/web test        # 443 Vitest unit/integration tests
+pnpm --filter @agri-shield/web test        # 733 Vitest unit/integration tests
 pnpm test:ml                               # 68 pytest tests (models, API, RAG, Monte Carlo)
 pnpm --filter @agri-shield/web test:e2e    # Playwright: farmer, government, admin, landing, PWA flows
 ```

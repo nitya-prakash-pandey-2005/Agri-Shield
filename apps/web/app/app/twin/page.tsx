@@ -1,5 +1,12 @@
-import { SectionHeader } from "@/components/hud";
+import { Suspense } from "react";
+import TwinApp from "@/components/twin/TwinApp";
+
+export const metadata = { title: "Earth Twin" };
 
 export default function Page() {
-  return <SectionHeader eyebrow="Workspace" title="Earth Twin" description="This module is being provisioned." />;
+  return (
+    <Suspense>
+      <TwinApp />
+    </Suspense>
+  );
 }

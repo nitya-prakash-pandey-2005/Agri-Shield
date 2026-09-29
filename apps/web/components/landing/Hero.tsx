@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, CalendarCheck, Compass } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { GlobeStage } from "./GlobeStage";
 import { LiveCounters } from "./LiveCounters";
@@ -40,25 +40,33 @@ export function Hero() {
           </h1>
 
           <p style={{ animationDelay: "240ms" }} className="site-in mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            Agri-SHIELD turns climate data into decisions — for farmers, governments, and supply chains across Asia.
+            Climate-risk intelligence for the organisations that carry farm risk: insurers, lenders, agribusiness, governments, NGOs and co-ops. Live flood, salinity, drought and heat scores for every asset you hold, for any location on Earth.
           </p>
 
           <div style={{ animationDelay: "320ms" }} className="site-in mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/auth/signup?role=farmer"
+              href="/book-demo"
               className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-semibold text-slate-950 shadow-[0_10px_40px_-12px_rgba(16,185,129,0.9)] transition-all hover:bg-emerald-400 active:scale-[0.98]"
             >
-              Start free for farmers
+              <CalendarCheck size={17} aria-hidden />
+              Book a demo
               <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" aria-hidden />
             </Link>
             <Link
-              href="/#request-demo"
+              href="/explore"
               className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-slate-600/70 bg-slate-950/40 px-6 text-[15px] font-medium text-slate-100 backdrop-blur transition-colors hover:border-slate-400 hover:bg-slate-900/60"
             >
-              <Building2 size={17} aria-hidden />
-              Request government demo
+              <Compass size={17} aria-hidden />
+              Explore any location
             </Link>
           </div>
+
+          <p style={{ animationDelay: "360ms" }} className="site-in mt-4 text-sm text-slate-400">
+            Farmer?{" "}
+            <Link href="/auth/signup?role=farmer" className="text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-200">
+              Get flood alerts free
+            </Link>
+          </p>
 
           <div className="site-in" style={{ animationDelay: "400ms" }}>
             <LiveCounters />

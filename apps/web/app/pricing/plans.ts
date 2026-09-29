@@ -2,10 +2,11 @@
  * Agri-SHIELD plan catalogue (spec §12). Pure data — imported by the pricing
  * page, the landing teaser and the billing tRPC router.
  */
-export type PlanId = "free" | "farmer_pro" | "gov_basic" | "gov_enterprise" | "supply_chain";
+export type PlanId = "free" | "farmer_pro" | "gov_basic" | "gov_enterprise" | "supply_chain" | "business" | "enterprise";
 export type BillingInterval = "month" | "year";
 export type CurrencyCode = "USD" | "INR" | "BDT" | "VND" | "PHP" | "IDR";
-export type Audience = "farmer" | "government" | "supply_chain";
+/** "workspace" = the multi-tenant organisation workspace (insurers, banks, agribusiness, NGOs, co-ops). */
+export type Audience = "farmer" | "government" | "supply_chain" | "workspace";
 
 export interface Plan {
   id: PlanId;
@@ -14,6 +15,8 @@ export interface Plan {
   tagline: string;
   /** USD per month; null = custom quote */
   usdMonthly: number | null;
+  /** Indicative starting price for quoted plans ("from $4,900 / month"). Display only. */
+  fromUsdMonthly?: number;
   /** Fixed local list prices that override FX conversion (e.g. ₹199 Farmer Pro). */
   localMonthly?: Partial<Record<CurrencyCode, number>>;
   unit: string;
@@ -58,6 +61,46 @@ export const PLANS: Plan[] = [
       "Weekly satellite field scans",
       "WhatsApp alerts",
       "Crop-insurance recommendations",
+    ],
+  },
+  {
+    id: "business",
+    name: "Business",
+    audience: "workspace",
+    tagline: "One climate-risk workspace for an insurer, lender, agribusiness, NGO or co-op.",
+    usdMonthly: 1490,
+    unit: "per workspace / month",
+    highlight: true,
+    trialDays: TRIAL_DAYS,
+    cta: "Start 14-day trial",
+    features: [
+      "Up to 2,500 monitored assets · 10 seats",
+      "Risk Explorer for any location on Earth",
+      "Portfolio monitoring, re-scored daily",
+      "Alert rules → app, email, SMS, webhook",
+      "One industry module: Insurance, Finance or Anticipatory Action",
+      "Copilot: ask questions of your own portfolio",
+      "REST API + signed webhooks",
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    audience: "workspace",
+    tagline: "Every module, unlimited assets, your security and hosting requirements.",
+    usdMonthly: null,
+    fromUsdMonthly: 4900,
+    unit: "per organisation · annual contract",
+    trialDays: 0,
+    cta: "Book a demo",
+    features: [
+      "Unlimited assets and seats",
+      "All modules: Insurance, Finance, Anticipatory Action",
+      "Multiple workspaces (regions, subsidiaries)",
+      "Higher API limits + bulk portfolio import",
+      "Private hosting / data-residency options",
+      "Dedicated customer success manager",
+      "99.9% uptime SLA",
     ],
   },
   {
@@ -135,45 +178,73 @@ export function minorUnits(plan: Plan, currency: "USD" | "INR", interval: Billin
   return Math.round(p * 100);
 }
 
-/** Full comparison matrix rows: [feature, free, pro, govBasic, govEnt, supply] */
+/** Column order of the feature matrix (and of plan cards in the "All" view). */
+export const MATRIX_COLUMNS: PlanId[] = ["free", "farmer_pro", "gov_basic", "gov_enterprise", "supply_chain", "business", "enterprise"];
+
 export type Cell = boolean | string;
-export const MATRIX: { group: string; rows: [string, Cell, Cell, Cell, Cell, Cell][] }[] = [
+export interface MatrixRow {
+  label: string;
+  /** Plain-language explanation shown under the label */
+  help?: string;
+  cells: Record<PlanId, Cell>;
+}
+
+/** Row helper — cells listed in MATRIX_COLUMNS order. */
+function r(label: string, cells: [Cell, Cell, Cell, Cell, Cell, Cell, Cell], help?: string): MatrixRow {
+  return { label, help, cells: Object.fromEntries(MATRIX_COLUMNS.map((id, i) => [id, cells[i]!])) as Record<PlanId, Cell> };
+}
+
+export const MATRIX: { group: string; rows: MatrixRow[] }[] = [
   {
     group: "Early warning",
     rows: [
-      ["Flood alerts", "24 h", "72 h", "72 h", "72 h", "72 h"],
-      ["Saltwater-intrusion alerts", false, true, true, true, true],
-      ["Live hazard feed (GDACS · NASA EONET)", true, true, true, true, true],
-      ["Alert channels", "App + 5 SMS", "App, SMS, WhatsApp", "Broadcast to farmers", "Broadcast + custom templates", "Email + webhooks"],
+      r("Flood alerts", ["24 h", "72 h", "72 h", "72 h", "72 h", "72 h", "72 h"]),
+      r("Saltwater-intrusion alerts", [false, true, true, true, true, true, true]),
+      r("Live hazard feed (GDACS · NASA EONET)", [true, true, true, true, true, true, true]),
+      r("Alert channels", ["App + 5 SMS", "App, SMS, WhatsApp", "Broadcast to farmers", "Broadcast + custom templates", "Email + webhooks", "App, email, SMS, webhook, Slack", "All + custom integrations"]),
+    ],
+  },
+  {
+    group: "Workspace modules",
+    rows: [
+      r("Risk Explorer", [false, false, "1 province", "National", true, "Any location", "Any location"], "Type any place or click the map for a full flood, salinity, drought and heat report."),
+      r("Portfolio monitoring", [false, false, false, false, "20 supply nodes", "2,500 assets", "Unlimited"], "Import plots, loans, facilities or communities; each is re-scored against live forecasts."),
+      r("Alert rules engine", [false, false, false, true, false, true, true], "“If flood probability on a coastal plot exceeds 60%, SMS the claims team.”"),
+      r("Insurance module", [false, false, false, false, false, "1 industry module", true], "Parametric trigger watch, expected loss, claims triage."),
+      r("Lending & Finance module", [false, false, false, false, false, "1 industry module", true], "Climate-adjusted expected loss on the loan book, restructuring watch-list."),
+      r("Anticipatory Action module", [false, false, false, false, false, "1 industry module", true], "Pre-agreed triggers that release cash or supplies before the peak."),
+      r("Copilot (ask your data)", [false, false, false, false, false, true, true], "Plain-language questions answered only from your workspace data, with sources."),
+      r("REST API + webhooks", [false, false, false, true, true, true, "Higher limits"]),
+      r("Seats", ["1", "1", "Agency team", "Unlimited", "Team", "10", "Unlimited"]),
     ],
   },
   {
     group: "Intelligence",
     rows: [
-      ["Fields / regions", "2 fields · 10 ha", "Unlimited fields", "1 province", "National", "20 supply nodes"],
-      ["AI farm advisor", false, "50 / month", false, false, false],
-      ["Satellite field scans (NASA MODIS NDVI)", false, "Weekly", "Weekly", "Daily", false],
-      ["Commodity risk tracking", false, false, false, false, "10 commodities"],
-      ["Scenario modelling", false, false, false, true, true],
-      ["Languages", "English", "All 8", "All 8", "All 8", "English"],
+      r("Fields / regions", ["2 fields · 10 ha", "Unlimited fields", "1 province", "National", "20 supply nodes", "Any region", "Any region"]),
+      r("AI farm advisor", [false, "50 / month", false, false, false, false, false]),
+      r("Satellite field scans (NASA MODIS NDVI)", [false, "Weekly", "Weekly", "Daily", false, "Weekly", "Daily"]),
+      r("Commodity risk tracking", [false, false, false, false, "10 commodities", false, true]),
+      r("Scenario modelling", [false, false, false, true, true, true, true]),
+      r("Languages", ["English", "All 8", "All 8", "All 8", "English", "English + 1", "All 8"]),
     ],
   },
   {
     group: "Operations",
     rows: [
-      ["Resource tracking & dispatch", false, false, true, true, false],
-      ["Reports", false, false, "Monthly PDF", "On demand", "On demand"],
-      ["REST API", false, false, false, true, true],
-      ["Signed webhooks", false, false, false, true, true],
-      ["Offline PWA + SMS fallback", true, true, true, true, true],
+      r("Resource tracking & dispatch", [false, false, true, true, false, false, true]),
+      r("Reports", [false, false, "Monthly PDF", "On demand", "On demand", "On demand + CSV/GeoJSON", "On demand + scheduled"]),
+      r("Signed webhooks", [false, false, false, true, true, true, true]),
+      r("Offline PWA + SMS fallback", [true, true, true, true, true, true, true]),
+      r("Private hosting / data residency", [false, false, false, true, false, false, true]),
     ],
   },
   {
     group: "Support",
     rows: [
-      ["Support", "Community", "In-app chat", "Email, 1 business day", "Dedicated manager", "Integration engineer"],
-      ["Uptime SLA", false, false, "99.5%", "99.9%", "99.5%"],
-      ["Free trial", "—", "14 days, no card", "14 days, no card", "Pilot on request", "14 days, no card"],
+      r("Support", ["Community", "In-app chat", "Email, 1 business day", "Dedicated manager", "Integration engineer", "Email + onboarding call", "Dedicated success manager"]),
+      r("Uptime SLA", [false, false, "99.5%", "99.9%", "99.5%", "99.5%", "99.9%"]),
+      r("Free trial", ["—", "14 days, no card", "14 days, no card", "Pilot on request", "14 days, no card", "14 days, no card", "Paid pilot on request"]),
     ],
   },
 ];

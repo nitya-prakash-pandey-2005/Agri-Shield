@@ -32,6 +32,9 @@ export interface BillingMeta {
   updatedAt: Date;
 }
 
+export const LEAD_INTERESTS = ["government_demo", "partnership", "investment", "enterprise", "supply_chain", "demo", "other"] as const;
+export type LeadInterest = (typeof LEAD_INTERESTS)[number];
+
 export interface LeadRecord {
   id: string;
   at: Date;
@@ -40,8 +43,16 @@ export interface LeadRecord {
   organisation: string;
   role: string | null;
   country: string | null;
-  interest: "government_demo" | "partnership" | "investment" | "enterprise" | "supply_chain" | "other";
+  interest: LeadInterest;
   message: string;
+  /** Demo-booking extras (book-demo page); null for plain contact-form leads */
+  industry: string | null;
+  companySize: string | null;
+  useCase: string | null;
+  /** Preferred demo start, ISO-8601 UTC */
+  preferredSlot: Date | null;
+  /** Visitor's IANA timezone, used to phrase the confirmation */
+  timezone: string | null;
   source: string;
   status: "new" | "contacted";
 }
@@ -60,8 +71,8 @@ export function providersAvailable() {
   };
 }
 
-/** Org-level plans attach to the user's organisation when they have one. */
-const isOrgPlan = (plan: PlanId) => plan === "gov_basic" || plan === "gov_enterprise" || plan === "supply_chain";
+/** Org-level plans attach to the user's organisation (workspace) when they have one. */
+const isOrgPlan = (plan: PlanId) => plan === "gov_basic" || plan === "gov_enterprise" || plan === "supply_chain" || plan === "business" || plan === "enterprise";
 
 function findSubscription(userId: string, orgId: string | null) {
   const s = getStore();
@@ -109,7 +120,11 @@ export function applySubscription(input: {
   user.subscriptionTier = input.plan;
   if (orgId) {
     const org = s.orgs.find((o) => o.id === orgId);
-    if (org) org.planTier = input.plan;
+    if (org) {
+      org.planTier = input.plan;
+      // A trial checkout starts a trial; a paid activation ends any running trial
+      org.trialEndsAt = input.status === "trialing" ? trialEnds ?? periodEnd : null;
+    }
   }
 
   const prev = meta.get(sub.id);
@@ -181,8 +196,19 @@ async function razorpay<T>(path: string, body: unknown): Promise<T> {
   return json;
 }
 
-const planInput = z.enum(["free", "farmer_pro", "gov_basic", "gov_enterprise", "supply_chain"]);
+const planInput = z.enum(["free", "farmer_pro", "gov_basic", "gov_enterprise", "supply_chain", "business", "enterprise"]);
 const currencyInput = z.enum(["USD", "INR", "BDT", "VND", "PHP", "IDR"]);
+
+/** Validated IANA zone or UTC (Intl throws on unknown zones). */
+function safeTz(tz: string | null | undefined) {
+  if (!tz) return "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return tz;
+  } catch {
+    return "UTC";
+  }
+}
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -335,10 +361,23 @@ export const billingRouter = router({
         organisation: z.string().trim().min(2).max(120),
         role: z.string().trim().max(80).optional(),
         country: z.string().trim().max(60).optional(),
-        interest: z.enum(["government_demo", "partnership", "investment", "enterprise", "supply_chain", "other"]),
+        interest: z.enum(LEAD_INTERESTS),
         message: z.string().trim().max(2000).default(""),
         source: z.string().max(40).default("site"),
         website: z.string().max(0).optional(),
+        // demo-booking extras (all optional so existing forms keep working)
+        industry: z.enum(["insurance", "banking", "agribusiness", "government", "ngo", "cooperative", "farmers", "other"]).optional(),
+        companySize: z.string().trim().max(40).optional(),
+        useCase: z.string().trim().max(200).optional(),
+        preferredSlot: z
+          .string()
+          .datetime()
+          .refine((v) => {
+            const t = Date.parse(v);
+            return t > Date.now() - 3_600_000 && t < Date.now() + 120 * DAY;
+          }, "Pick a slot within the next 120 days")
+          .optional(),
+        timezone: z.string().trim().max(64).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -354,24 +393,36 @@ export const billingRouter = router({
         message: input.message,
         source: input.source,
         status: "new",
+        industry: input.industry ?? null,
+        companySize: input.companySize || null,
+        useCase: input.useCase || null,
+        preferredSlot: input.preferredSlot ? new Date(input.preferredSlot) : null,
+        timezone: input.timezone || null,
       };
       leads.unshift(lead);
       if (leads.length > 500) leads.length = 500;
-      audit({ userId: ctx.session?.user?.id ?? "anonymous", userName: input.name, action: "lead.created", entity: "lead", entityId: lead.id, details: `${input.interest} — ${input.organisation} (${input.source})` });
+      audit({ userId: ctx.session?.user?.id ?? "anonymous", userName: input.name, action: "lead.created", entity: "lead", entityId: lead.id, details: `${input.interest} — ${input.organisation} (${input.source})${lead.preferredSlot ? ` · slot ${lead.preferredSlot.toISOString()}` : ""}` });
+      const slotText = lead.preferredSlot
+        ? lead.preferredSlot.toLocaleString("en-GB", { timeZone: safeTz(lead.timezone), dateStyle: "full", timeStyle: "short" }) + ` (${safeTz(lead.timezone)})`
+        : null;
       const inbox = process.env.SALES_EMAIL ?? "partners@agrishield.io";
       await Promise.all([
         sendEmail(
           inbox,
           `New ${input.interest.replace("_", " ")} lead: ${input.organisation}`,
-          `<p><b>${esc(input.name)}</b> &lt;${esc(input.email)}&gt; — ${esc(input.organisation)}${input.role ? `, ${esc(input.role)}` : ""}${input.country ? ` (${esc(input.country)})` : ""}</p><p>${esc(input.message)}</p>`
+          `<p><b>${esc(input.name)}</b> &lt;${esc(input.email)}&gt; — ${esc(input.organisation)}${input.role ? `, ${esc(input.role)}` : ""}${input.country ? ` (${esc(input.country)})` : ""}</p>` +
+            (lead.industry || lead.companySize || lead.useCase || slotText
+              ? `<p>Industry: ${esc(lead.industry ?? "—")} · Size: ${esc(lead.companySize ?? "—")} · Use case: ${esc(lead.useCase ?? "—")}${slotText ? `<br/>Preferred slot: ${esc(slotText)}` : ""}</p>`
+              : "") +
+            `<p>${esc(input.message)}</p>`
         ),
         sendEmail(
           input.email,
           "Agri-SHIELD — we received your request",
-          `<p>Hi ${esc(input.name.split(" ")[0] ?? input.name)},</p><p>Thanks for reaching out about Agri-SHIELD. We'll reply within one business day with next steps for ${esc(input.organisation)}.</p><p>— Nitya Prakash Pandey, Agri-SHIELD</p>`
+          `<p>Hi ${esc(input.name.split(" ")[0] ?? input.name)},</p><p>Thanks for reaching out about Agri-SHIELD. ${slotText ? `We've pencilled in your demo for <b>${esc(slotText)}</b> and will confirm the video link within one business day.` : `We'll reply within one business day with next steps for ${esc(input.organisation)}.`}</p><p>— Nitya Prakash Pandey, Agri-SHIELD</p>`
         ),
       ]).catch(() => undefined);
-      return { id: lead.id, receivedAt: lead.at };
+      return { id: lead.id, receivedAt: lead.at, preferredSlot: lead.preferredSlot };
     }),
 
   listLeads: permitted("access_admin_panel").query(() => leads.slice(0, 200)),

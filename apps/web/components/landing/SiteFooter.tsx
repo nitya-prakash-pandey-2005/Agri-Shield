@@ -5,30 +5,47 @@ import { LogoMark, Wordmark } from "./Logo";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
+    title: "Solutions",
+    links: [
+      { label: "Insurance", href: "/solutions/insurance" },
+      { label: "Banks & MFIs", href: "/solutions/banking" },
+      { label: "Agribusiness", href: "/solutions/agribusiness" },
+      { label: "Governments", href: "/solutions/government" },
+      { label: "NGOs", href: "/solutions/ngo" },
+      { label: "Co-operatives", href: "/solutions/cooperative" },
+      { label: "Farmers", href: "/solutions/farmers" },
+    ],
+  },
+  {
     title: "Platform",
     links: [
-      { label: "Farmer portal", href: "/dashboard/farmer" },
-      { label: "Government portal", href: "/dashboard/government" },
-      { label: "Supply chain portal", href: "/dashboard/supply-chain" },
+      { label: "Explore any location", href: "/explore" },
       { label: "Live risk map", href: "/#demo" },
+      { label: "ROI calculator", href: "/roi" },
+      { label: "Compare approaches", href: "/compare" },
+      { label: "Pilot scenarios", href: "/customers" },
       { label: "Pricing", href: "/pricing" },
     ],
   },
   {
     title: "Developers",
     links: [
+      { label: "Help centre", href: "/help" },
       { label: "Documentation", href: "/docs" },
       { label: "API reference", href: "/docs/api-reference" },
       { label: "Webhooks", href: "/docs/integration-guide" },
       { label: "Methodology", href: "/docs/methodology-flood" },
       { label: "Data sources", href: "/docs/data-sources" },
+      { label: "System status", href: "/status" },
+      { label: "Changelog", href: "/changelog" },
     ],
   },
   {
     title: "Company",
     links: [
       { label: "Pitch", href: "/pitch" },
-      { label: "Request a demo", href: "/#request-demo" },
+      { label: "Book a demo", href: "/book-demo" },
+      { label: "Trust centre", href: "/trust" },
       { label: "Security", href: "/docs/security" },
       { label: "Privacy policy", href: "/docs/privacy" },
       { label: "Terms of service", href: "/docs/terms" },
@@ -50,14 +67,14 @@ export function SiteFooter() {
         Footer
       </h2>
       <div className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-[1.3fr_2fr]">
+        <div className="grid gap-10 lg:grid-cols-[1fr_2.4fr]">
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-2" aria-label="Agri-SHIELD home">
               <LogoMark size={28} />
               <Wordmark />
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
-              Climate decision intelligence for Asia’s deltas. Flood and saltwater-intrusion warnings that reach farmers, agencies and buyers while there is still time to act.
+              Climate-risk intelligence for insurers, lenders, agribusiness, governments, NGOs, co-operatives and farmers. Warnings that reach the people who can act while there is still time.
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[
@@ -75,7 +92,7 @@ export function SiteFooter() {
               <LanguageSwitcher align="left" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {COLUMNS.map((c) => (
               <nav key={c.title} aria-label={c.title}>
                 <h3 className="text-sm font-medium text-white">{c.title}</h3>

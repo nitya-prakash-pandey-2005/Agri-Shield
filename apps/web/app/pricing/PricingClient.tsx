@@ -5,14 +5,21 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Building2, Check, ChevronDown, CreditCard, Loader2, Minus, ShieldCheck, Sprout, Truck, Wallet } from "lucide-react";
+import { Briefcase, Building2, Check, ChevronDown, CreditCard, Loader2, Minus, ShieldCheck, Sprout, Truck, Wallet } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { LeadForm } from "@/components/landing/LeadForm";
 import { cn } from "@/lib/utils";
-import { ANNUAL_MONTHS, CURRENCIES, MATRIX, PLANS, formatMoney, priceFor, type BillingInterval, type CurrencyCode, type Plan, type Cell } from "./plans";
+import { ANNUAL_MONTHS, CURRENCIES, FX, MATRIX, MATRIX_COLUMNS, PLANS, formatMoney, priceFor, type BillingInterval, type CurrencyCode, type Plan, type Cell, type PlanId } from "./plans";
 
-const AUDIENCE_ICON = { farmer: Sprout, government: Building2, supply_chain: Truck } as const;
-const AUDIENCE_LABEL = { farmer: "Farmers", government: "Governments", supply_chain: "Supply chains" } as const;
+const AUDIENCE_ICON = { farmer: Sprout, government: Building2, supply_chain: Truck, workspace: Briefcase } as const;
+const AUDIENCE_LABEL = { farmer: "Farmers", government: "Governments", supply_chain: "Supply chains", workspace: "Companies & NGOs" } as const;
+
+type Tab = "organisations" | "farmers" | "all";
+const TABS: { id: Tab; label: string; plans: PlanId[] }[] = [
+  { id: "organisations", label: "Organisations", plans: ["business", "enterprise", "supply_chain", "gov_basic", "gov_enterprise"] },
+  { id: "farmers", label: "Farmers", plans: ["free", "farmer_pro"] },
+  { id: "all", label: "All plans", plans: MATRIX_COLUMNS },
+];
 
 function guessCurrency(): CurrencyCode {
   try {
@@ -32,6 +39,10 @@ function guessCurrency(): CurrencyCode {
 }
 
 const FAQ = [
+  {
+    q: "Which plan fits an insurer, bank, agribusiness, NGO or co-op?",
+    a: "Business ($1,490/month) is one workspace with up to 2,500 monitored assets, 10 seats, portfolio monitoring, alert rules, Copilot, the API and one industry module (Insurance, Lending & Finance or Anticipatory Action). Enterprise (from $4,900/month) adds unlimited assets, every module, multiple workspaces and private hosting.",
+  },
   {
     q: "Is the free plan really free for farmers?",
     a: "Yes. Farmer Basic has no time limit and no card. Governments and supply-chain customers fund the platform, which is how we keep flood warnings free for smallholders.",
@@ -70,6 +81,7 @@ export function PricingClient() {
   const [interval, setBillingInterval] = useState<BillingInterval>("month");
   const [currency, setCurrency] = useState<CurrencyCode>("USD");
   const [busy, setBusy] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("organisations");
   const plansQ = trpc.billing.getPlans.useQuery();
   const sub = trpc.billing.getSubscription.useQuery(undefined, { enabled: status === "authenticated" });
   const start = trpc.billing.startCheckout.useMutation();
@@ -79,6 +91,8 @@ export function PricingClient() {
     const sp = new URLSearchParams(window.location.search);
     if (sp.get("checkout") === "cancelled") toast("Checkout cancelled", { description: "No charge was made. Your plan hasn’t changed." });
     if (sp.get("interval") === "year") setBillingInterval("year");
+    const planQ = sp.get("plan");
+    if (sp.get("audience") === "farmer" || planQ === "free" || planQ === "farmer_pro") setTab("farmers");
   }, []);
 
   const changeCurrency = (c: CurrencyCode) => {
@@ -94,7 +108,8 @@ export function PricingClient() {
 
   const choose = async (plan: Plan) => {
     if (plan.usdMonthly === null) {
-      document.getElementById("contact-sales")?.scrollIntoView({ behavior: "smooth" });
+      if (plan.audience === "workspace") router.push(`/book-demo?plan=${plan.id}`);
+      else document.getElementById("contact-sales")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
     const checkoutPath = `/pricing/checkout?plan=${plan.id}&interval=${interval}&currency=${currency}`;
@@ -124,7 +139,9 @@ export function PricingClient() {
   };
 
   const current = sub.data?.plan;
-  const grouped = useMemo(() => PLANS, []);
+  const tabDef = TABS.find((t) => t.id === tab)!;
+  const grouped = useMemo(() => tabDef.plans.map((id) => PLANS.find((p) => p.id === id)!).filter(Boolean), [tabDef]);
+  const columns = tabDef.plans;
 
   return (
     <>
@@ -139,7 +156,16 @@ export function PricingClient() {
             </p>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-3">
+          <div role="tablist" aria-label="Plans for" className="mt-10 inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            {TABS.map((t) => (
+              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={cn("relative min-h-[40px] rounded-lg px-4 text-sm", tab === t.id ? "text-white" : "text-slate-400 hover:text-white")}>
+                {tab === t.id && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-lg bg-white/[0.08] ring-1 ring-white/15" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                <span className="relative">{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <div role="radiogroup" aria-label="Billing interval" className="flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
               {(["month", "year"] as const).map((iv) => (
                 <button key={iv} role="radio" aria-checked={interval === iv} onClick={() => setBillingInterval(iv)} className={cn("relative min-h-[40px] rounded-lg px-4 text-sm", interval === iv ? "text-slate-950" : "text-slate-300 hover:text-white")}>
@@ -172,7 +198,7 @@ export function PricingClient() {
       </section>
 
       <section aria-label="Plans" className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className={cn("grid gap-4 sm:grid-cols-2", grouped.length === 2 ? "lg:mx-auto lg:max-w-4xl" : grouped.length >= 5 ? "lg:grid-cols-3 xl:grid-cols-5" : "lg:grid-cols-4")}>
           {grouped.map((p) => {
             const price = priceFor(p, currency, interval);
             const Icon = AUDIENCE_ICON[p.audience];
@@ -188,7 +214,15 @@ export function PricingClient() {
                 </h2>
                 <p className="mt-1 min-h-[40px] text-sm leading-snug text-slate-400">{p.tagline}</p>
                 <div className="mt-5 min-h-[64px]">
-                  {price === null ? (
+                  {price === null && p.fromUsdMonthly ? (
+                    <div className="flex flex-wrap items-baseline gap-x-1.5">
+                      <span className="text-xs text-slate-400">from</span>
+                      <span className="font-display text-3xl font-semibold tracking-tight text-white">
+                        {formatMoney(currency === "USD" ? p.fromUsdMonthly : Math.round((p.fromUsdMonthly * FX[currency]) / 1000) * 1000, currency)}
+                      </span>
+                      <span className="text-xs text-slate-500">/month</span>
+                    </div>
+                  ) : price === null ? (
                     <div className="font-display text-3xl font-semibold text-white">Custom</div>
                   ) : price === 0 ? (
                     <div className="font-display text-3xl font-semibold text-white">Free</div>
@@ -201,6 +235,7 @@ export function PricingClient() {
                   <div className="mt-1 text-xs text-slate-500">
                     {p.unit}
                     {interval === "year" && price ? ` · billed yearly (${ANNUAL_MONTHS}× monthly)` : ""}
+                    {p.audience === "workspace" && p.usdMonthly !== null && " · NGOs & co-ops 50% off"}
                   </div>
                 </div>
                 <button
@@ -246,35 +281,39 @@ export function PricingClient() {
           Compare every feature
         </h2>
         <div className="mt-6 overflow-x-auto rounded-2xl border border-white/[0.08]">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
+          <table className={cn("w-full border-collapse text-sm", columns.length > 3 ? "min-w-[860px]" : "min-w-[520px]")}>
             <caption className="sr-only">Feature comparison across Agri-SHIELD plans</caption>
             <thead>
               <tr className="bg-white/[0.03]">
                 <th scope="col" className="sticky left-0 z-10 bg-[#0a1120] px-4 py-3 text-left font-medium text-slate-400">
                   Feature
                 </th>
-                {PLANS.map((p) => (
-                  <th key={p.id} scope="col" className={cn("px-3 py-3 text-center font-medium", p.highlight ? "text-emerald-300" : "text-slate-200")}>
-                    {p.name}
-                  </th>
-                ))}
+                {columns.map((id) => {
+                  const p = PLANS.find((x) => x.id === id)!;
+                  return (
+                    <th key={p.id} scope="col" className={cn("px-3 py-3 text-center font-medium", p.highlight ? "text-emerald-300" : "text-slate-200")}>
+                      {p.name}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             {MATRIX.map((g) => (
               <tbody key={g.group}>
                 <tr>
-                  <th colSpan={6} scope="colgroup" className="sticky left-0 bg-[#050a14] px-4 pb-2 pt-6 text-left text-xs font-medium text-slate-500">
+                  <th colSpan={columns.length + 1} scope="colgroup" className="sticky left-0 bg-[#050a14] px-4 pb-2 pt-6 text-left text-xs font-medium text-slate-500">
                     {g.group}
                   </th>
                 </tr>
-                {g.rows.map(([label, ...cells]) => (
-                  <tr key={label} className="border-t border-white/[0.05]">
-                    <th scope="row" className="sticky left-0 z-10 bg-[#050a14] px-4 py-3 text-left font-normal text-slate-300">
-                      {label}
+                {g.rows.map((row) => (
+                  <tr key={row.label} className="border-t border-white/[0.05]">
+                    <th scope="row" className="sticky left-0 z-10 max-w-[260px] bg-[#050a14] px-4 py-3 text-left font-normal text-slate-300">
+                      {row.label}
+                      {row.help && <span className="mt-0.5 block text-[11.5px] leading-snug text-slate-500">{row.help}</span>}
                     </th>
-                    {cells.map((c, k) => (
-                      <td key={k} className={cn("px-3 py-3 text-center text-[13px]", k === 1 && "bg-emerald-400/[0.03]")}>
-                        <CellView v={c} />
+                    {columns.map((id) => (
+                      <td key={id} className={cn("px-3 py-3 text-center text-[13px]", PLANS.find((p) => p.id === id)?.highlight && "bg-emerald-400/[0.03]")}>
+                        <CellView v={row.cells[id]} />
                       </td>
                     ))}
                   </tr>
@@ -304,7 +343,10 @@ export function PricingClient() {
         </div>
         <div id="contact-sales" className="scroll-mt-24">
           <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl">Talk to us about Enterprise</h2>
-          <p className="mt-2 text-sm text-slate-400">National rollouts, self-hosting, data-sharing agreements and invoicing.</p>
+          <p className="mt-2 text-sm text-slate-400">
+            Company-wide rollouts, national programmes, self-hosting, data-sharing agreements and invoicing. Prefer to pick a time?{" "}
+            <a href="/book-demo?plan=enterprise" className="text-emerald-300 underline underline-offset-2">Book a demo</a>.
+          </p>
           <div className="hud-panel mt-6 p-5 sm:p-6">
             <LeadForm defaultInterest="enterprise" source="pricing" compact />
           </div>

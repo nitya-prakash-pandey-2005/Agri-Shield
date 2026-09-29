@@ -175,9 +175,13 @@ export function CheckoutClient({
     return (
       <div className="mx-auto mt-16 max-w-lg text-center">
         <h1 className="font-display text-3xl font-semibold text-white">{plan.name} is quoted per contract</h1>
-        <p className="mt-3 text-slate-400">National rollouts are priced on provinces, farmers reached and hosting. Tell us what you need and we’ll send a proposal.</p>
-        <Link href="/pricing#contact-sales" className="mt-6 inline-flex min-h-[48px] items-center rounded-xl bg-emerald-500 px-6 font-semibold text-slate-950 hover:bg-emerald-400">
-          Contact sales
+        <p className="mt-3 text-slate-400">
+          {plan.audience === "workspace"
+            ? `Enterprise starts from $${(plan.fromUsdMonthly ?? 4900).toLocaleString("en-US")} a month on an annual contract, priced on assets, modules and hosting. Book a demo and we’ll send a proposal.`
+            : "National rollouts are priced on provinces, farmers reached and hosting. Tell us what you need and we’ll send a proposal."}
+        </p>
+        <Link href={plan.audience === "workspace" ? `/book-demo?plan=${plan.id}` : "/pricing#contact-sales"} className="mt-6 inline-flex min-h-[48px] items-center rounded-xl bg-emerald-500 px-6 font-semibold text-slate-950 hover:bg-emerald-400">
+          {plan.audience === "workspace" ? "Book a demo" : "Contact sales"}
         </Link>
       </div>
     );

@@ -6,7 +6,7 @@ import { PricingClient } from "./PricingClient";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Free flood alerts for farmers. Farmer Pro from ₹199/month. Government and supply-chain plans with a 14-day free trial, no card required.",
+  description: "Business workspace $1,490/month and Enterprise from $4,900/month for insurers, lenders, agribusiness, NGOs and co-ops. Free flood alerts for farmers; government and supply-chain plans with a 14-day free trial.",
   alternates: { canonical: "/pricing" },
 };
 

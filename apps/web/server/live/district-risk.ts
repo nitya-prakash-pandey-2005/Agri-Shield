@@ -11,7 +11,8 @@ import { getFloodRisk, getSalinityRisk, mlHealth } from "../ml-client";
 
 const g = globalThis as unknown as { __agriRiskRefresh?: { at: number; running: Promise<void> | null } };
 const state = (g.__agriRiskRefresh ??= { at: 0, running: null });
-const INTERVAL = 20 * 60_000;
+// District overlay refresh; hourly on the free weather tier, 20 min with a commercial Open-Meteo key
+const INTERVAL = (process.env.OPEN_METEO_API_KEY ? 20 : 45) * 60_000;
 
 const sum = (a: (number | null | undefined)[]) => a.reduce<number>((s, v) => s + (v ?? 0), 0);
 

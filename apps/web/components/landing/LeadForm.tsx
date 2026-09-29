@@ -10,11 +10,11 @@ import { trpc } from "@/lib/trpc";
 type Interest = "government_demo" | "partnership" | "investment" | "enterprise" | "supply_chain" | "other";
 
 const INTERESTS: { id: Interest; label: string }[] = [
+  { id: "enterprise", label: "Company workspace" },
   { id: "government_demo", label: "Government demo" },
   { id: "supply_chain", label: "Supply chain pilot" },
   { id: "partnership", label: "NGO / research partnership" },
   { id: "investment", label: "Investment" },
-  { id: "enterprise", label: "Enterprise pricing" },
   { id: "other", label: "Something else" },
 ];
 
@@ -84,7 +84,7 @@ export function LeadForm({ defaultInterest = "government_demo", source = "landin
           </fieldset>
           <div className={`grid gap-4 ${compact ? "" : "sm:grid-cols-2"}`}>
             {field("name", "Full name", { autoComplete: "name", placeholder: "Your name" })}
-            {field("email", "Work email", { type: "email", autoComplete: "email", placeholder: "you@agency.gov" })}
+            {field("email", "Work email", { type: "email", autoComplete: "email", placeholder: "you@company.com" })}
             {field("organisation", "Organisation", { autoComplete: "organization", placeholder: "Ministry, company or NGO" })}
             {field("role", "Role (optional)", { placeholder: "e.g. Deputy Director, DAE" })}
           </div>

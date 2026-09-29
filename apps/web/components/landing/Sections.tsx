@@ -28,9 +28,9 @@ export function DemoMapSection() {
 }
 
 const TEASER = [
-  { name: "Farmer Basic", price: "Free", unit: "forever", points: ["Flood alerts 24 h ahead", "2 fields, SMS + app"], href: "/auth/signup?role=farmer", cta: "Start free" },
-  { name: "Farmer Pro", price: "₹199", unit: "per month · $3", points: ["Flood + salinity, 72 h ahead", "AI advisor in 8 languages"], href: "/pricing?plan=farmer_pro", cta: "Try 14 days free", highlight: true },
-  { name: "Agencies & supply chains", price: "$299", unit: "from, per month", points: ["Regional command dashboard", "API, webhooks, scenarios"], href: "/pricing", cta: "Compare plans" },
+  { name: "Farmers", price: "Free", unit: "forever · Pro ₹199 / $3 a month", points: ["Flood alerts for your own fields", "App + SMS in 8 languages"], href: "/pricing?audience=farmer", cta: "Start free" },
+  { name: "Business workspace", price: "$1,490", unit: "per month · 14-day trial", points: ["2,500 assets, 10 seats, any location", "Portfolio, alert rules, Copilot, API", "Insurance, Finance or Anticipatory module"], href: "/pricing?plan=business", cta: "Start 14-day trial", highlight: true },
+  { name: "Enterprise", price: "$4,900", unit: "starting price / month · annual", points: ["Unlimited assets, every module", "Private hosting, SLA, success manager"], href: "/book-demo?plan=enterprise", cta: "Book a demo" },
 ];
 
 export function PricingTeaser() {
@@ -39,14 +39,14 @@ export function PricingTeaser() {
       <div className="max-w-2xl">
         <p className="text-sm text-emerald-300/90">Pricing</p>
         <h2 id="pricing-title" className="mt-3 font-display text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-          Free for the farmer. Paid by those who plan.
+          Free for the farmer. Paid by the organisations that carry the risk.
         </h2>
-        <p className="mt-5 text-base leading-relaxed text-slate-400 sm:text-lg">Every paid plan starts with a 14-day trial and no card. Prices shown in local currency on the pricing page.</p>
+        <p className="mt-5 text-base leading-relaxed text-slate-400 sm:text-lg">Self-serve plans start with a 14-day trial and no card. Government, supply-chain and local-currency prices are on the pricing page; NGOs and co-operatives get 50% off.</p>
       </div>
       <div className="mt-12 grid gap-4 md:grid-cols-3">
         {TEASER.map((t) => (
           <div key={t.name} className={`relative flex flex-col rounded-2xl border p-6 ${t.highlight ? "border-emerald-400/40 bg-emerald-400/[0.05] shadow-[0_0_60px_-30px_rgba(52,211,153,0.8)]" : "border-white/[0.08] bg-white/[0.02]"}`}>
-            {t.highlight && <span className="absolute -top-3 left-6 rounded-full bg-emerald-400 px-2.5 py-0.5 text-[11px] font-semibold text-slate-950">Most farmers choose this</span>}
+            {t.highlight && <span className="absolute -top-3 left-6 rounded-full bg-emerald-400 px-2.5 py-0.5 text-[11px] font-semibold text-slate-950">Most popular for companies</span>}
             <h3 className="text-sm text-slate-300">{t.name}</h3>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="font-display text-4xl font-semibold tracking-tight text-white">{t.price}</span>
@@ -79,26 +79,30 @@ export function RequestDemoSection() {
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(800px_400px_at_20%_0%,rgba(16,185,129,0.12),transparent_60%)]" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-24 sm:px-6 sm:py-32 lg:grid-cols-[1fr_1.1fr]">
         <div>
-          <p className="text-sm text-emerald-300/90">For ministries, disaster agencies and buyers</p>
+          <p className="text-sm text-emerald-300/90">For insurers, lenders, agribusiness, agencies and NGOs</p>
           <h2 id="request-title" className="mt-3 font-display text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-            See your own provinces on the map.
+            See your own portfolio on the map.
           </h2>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-400 sm:text-lg">
-            A 30-minute walkthrough on live data for the districts you manage: risk ranking, resource pre-positioning and the alert broadcast console.
+            A 30-minute walkthrough on live data for the places you care about: your assets ranked by risk, the alert rules your team would run, and the module for your industry.
           </p>
           <ul className="mt-8 space-y-3 text-sm text-slate-300">
-            {["Configured for your districts before the call", "Sandbox logins for your team afterwards", "Data-sharing and hosting options for government networks"].map((x) => (
+            {["Configured with a sample of your locations before the call", "Sandbox logins for your team afterwards", "Security, data-sharing and hosting options explained"].map((x) => (
               <li key={x} className="flex gap-3">
                 <Check size={16} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden /> {x}
               </li>
             ))}
           </ul>
           <p className="mt-8 text-sm text-slate-500">
-            Prefer to explore first? Press <kbd className="telemetry rounded border border-white/15 px-1">⌘K</kbd> and choose “Sign in as government officer”.
+            Want to pick a time slot yourself?{" "}
+            <Link href="/book-demo" className="text-emerald-300 underline decoration-emerald-400/30 underline-offset-4 hover:text-emerald-200">
+              Book a demo in your timezone
+            </Link>
+            .
           </p>
         </div>
         <div className="hud-panel p-5 sm:p-8">
-          <LeadForm source="landing" />
+          <LeadForm source="landing" defaultInterest="enterprise" />
         </div>
       </div>
     </section>

@@ -79,7 +79,7 @@ function SignUpFlow() {
     try {
       if (role === "farmer") {
         const phone = v.phone!.replace(/\s/g, "");
-        await register.mutateAsync({ name: v.name, role, phone, country: v.country, language: locale });
+        await register.mutateAsync({ name: v.name, role, phone, country: v.country, language: locale, referralCode: ref ?? undefined });
         await requestOtp.mutateAsync({ identifier: phone });
         const q = new URLSearchParams({ identifier: phone, next: "/onboarding/farmer" });
         router.push(`/auth/otp-verify?${q.toString()}`);

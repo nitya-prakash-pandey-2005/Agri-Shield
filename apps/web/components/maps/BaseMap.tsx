@@ -75,6 +75,7 @@ export default function BaseMap({
   const labelRef = useRef<Leaflet.TileLayer | null>(null);
   const LRef = useRef<typeof Leaflet | null>(null);
   const [current, setCurrent] = useState<Basemap>(basemap);
+  useEffect(() => setCurrent(basemap), [basemap]);
 
   useEffect(() => {
     let cleanup: void | (() => void);

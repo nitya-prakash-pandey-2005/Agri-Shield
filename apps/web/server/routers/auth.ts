@@ -32,6 +32,7 @@ export const authRouter = router({
         organization: z.string().min(2).max(120).optional(),
         country: z.string().max(60).optional(),
         language: z.enum(LANGS).default("en"),
+        referralCode: z.string().max(32).optional(),
       })
     )
     .mutation(({ input }) => {
@@ -74,6 +75,10 @@ export const authRouter = router({
       // Org users can explore their dashboard while verification is pending (trial)
       if (user.status === "pending_verification") user.status = "active";
       s.users.push(user);
+      if (input.referralCode) {
+        const referrer = s.farmers.find((f) => f.referralCode.toLowerCase() === input.referralCode!.toLowerCase());
+        if (referrer) referrer.referrals += 1;
+      }
       audit({ userId: user.id, userName: user.name, action: "user.register", entity: "user", entityId: user.id, details: `Registered as ${user.role}` });
       return { userId: user.id, requiresVerification: input.role !== "farmer", orgId };
     }),

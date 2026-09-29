@@ -16,7 +16,8 @@ export type RealtimeEvent =
   | { type: "resource.updated"; requestId: string; status: string }
   | { type: "risk.updated"; districtIds: string[]; at: string }
   | { type: "scan.completed"; alertsCreated: number; at: string }
-  | { type: "sms.inbound"; from: string; command: string };
+  | { type: "sms.inbound"; from: string; command: string }
+  | { type: "webhook.delivered"; webhookId: string; deliveryId: string; status: number | null; ok: boolean; event: string };
 
 export interface RealtimeEnvelope {
   room: string;

@@ -1,0 +1,225 @@
+# Agri-SHIELD — continuous integration
+# web: type-check -> vitest -> next build | ml-api: pytest | db: migrations + RLS + seed
+# against a real PostGIS container | docker: build images, push to GHCR on main only.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.11"
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+  AGRI_OFFLINE: "true"
+
+jobs:
+  web:
+    name: Web - type-check, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      AUTH_SECRET: ci-only-not-a-real-secret-0123456789abcdef
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm (version from package.json#packageManager)
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm --filter @agri-shield/web type-check
+
+      - name: Unit & integration tests (Vitest)
+        run: pnpm --filter @agri-shield/web test
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/**/*.ts', 'apps/web/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Build (next build)
+        run: pnpm --filter @agri-shield/web build
+
+      - name: Playwright spec discovery
+        if: hashFiles('apps/web/e2e/**') != ''
+        working-directory: apps/web
+        run: npx playwright test --list
+
+  ml-api:
+    name: ML API - pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/ml-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: apps/ml-api/requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Compile check
+        run: python -m compileall -q -x '(\.venv|__pycache__)' .
+
+      - name: pytest
+        run: |
+          if find . -name 'test_*.py' -not -path './.venv/*' | grep -q .; then
+            pytest -q
+          else
+            echo "::warning::No pytest tests found in apps/ml-api - skipping"
+          fi
+
+  db:
+    name: Database - migrate, RLS, seed (PostGIS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # DB tooling evolves independently of the app (the web app runs on the in-memory store by default).
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: agrishield
+          POSTGRES_PASSWORD: agrishield_dev_password
+          POSTGRES_DB: agrishield
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agrishield"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://agrishield:agrishield_dev_password@localhost:5432/agrishield
+      PGPASSWORD: agrishield_dev_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Initialise extensions
+        run: psql -h localhost -U agrishield -d agrishield -v ON_ERROR_STOP=1 -f scripts/init-db.sql
+
+      - name: Migration drift check
+        run: pnpm --filter @agri-shield/db exec drizzle-kit check
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: Apply RLS policies
+        run: |
+          if [ -f scripts/rls-policies.sql ]; then
+            psql -h localhost -U agrishield -d agrishield -v ON_ERROR_STOP=1 -f scripts/rls-policies.sql
+          fi
+
+      - name: Seed (deterministic generator, offline)
+        run: pnpm db:seed
+
+      - name: Sanity query
+        run: psql -h localhost -U agrishield -d agrishield -c "SELECT relname, n_live_tup FROM pg_stat_user_tables ORDER BY relname;"
+
+  docker:
+    name: Docker - build (push to GHCR on main)
+    needs: [web, ml-api]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lowercase image namespace
+        id: ns
+        run: echo "owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata (ml-api)
+        id: meta_ml
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.ns.outputs.owner }}/agri-shield-ml
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build ml-api image
+        if: hashFiles('apps/ml-api/Dockerfile') != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/ml-api
+          file: apps/ml-api/Dockerfile
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta_ml.outputs.tags }}
+          labels: ${{ steps.meta_ml.outputs.labels }}
+          cache-from: type=gha,scope=ml
+          cache-to: type=gha,mode=max,scope=ml
+
+      - name: Image metadata (web)
+        id: meta_web
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.ns.outputs.owner }}/agri-shield-web
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

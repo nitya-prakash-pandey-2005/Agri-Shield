@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+    "typeRoots": ["../apps/web/node_modules/@types"],
+    "types": ["node"],
+    "paths": {
+      "@agri-shield/types": ["../packages/types/src/index.ts"],
+      "@agri-shield/db": ["../packages/db/src/index.ts"]
+    }
+  },
+  "include": ["seed.ts"]
+}

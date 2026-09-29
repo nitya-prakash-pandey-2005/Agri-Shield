@@ -1,0 +1,128 @@
+# Agri-SHIELD — production deploy (spec §13)
+# Vercel (web) | Railway (ML API + BullMQ worker) | drizzle migrations | chat notification.
+# Every job is gated on the presence of its secrets, so forks and fresh clones stay green.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  gate:
+    name: Detect configured targets
+    runs-on: ubuntu-latest
+    outputs:
+      has_vercel: ${{ steps.s.outputs.has_vercel }}
+      has_railway: ${{ steps.s.outputs.has_railway }}
+      has_db: ${{ steps.s.outputs.has_db }}
+      has_notify: ${{ steps.s.outputs.has_notify }}
+    steps:
+      - id: s
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          flag() { if [ -n "$1" ]; then echo true; else echo false; fi; }
+          echo "has_vercel=$(flag "$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+          echo "has_railway=$(flag "$RAILWAY_TOKEN")" >> "$GITHUB_OUTPUT"
+          echo "has_db=$(flag "$DATABASE_URL")" >> "$GITHUB_OUTPUT"
+          echo "has_notify=$(flag "$SLACK_WEBHOOK_URL$DISCORD_WEBHOOK_URL")" >> "$GITHUB_OUTPUT"
+
+  migrate:
+    name: Database migrations
+    needs: gate
+    if: needs.gate.outputs.has_db == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: drizzle-kit migrate
+        run: pnpm db:migrate
+
+  vercel:
+    name: Vercel (web)
+    needs: [gate, migrate]
+    if: always() && needs.gate.outputs.has_vercel == 'true' && needs.migrate.result != 'failure'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Pull project settings
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy prebuilt output
+        id: deploy
+        run: |
+          url=$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url"
+
+  railway:
+    name: Railway (ML API + worker)
+    needs: [gate, migrate]
+    if: always() && needs.gate.outputs.has_railway == 'true' && needs.migrate.result != 'failure'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm i -g @railway/cli
+      - name: Deploy ML API
+        working-directory: apps/ml-api
+        run: railway up --service agri-shield-ml --detach
+      - name: Deploy BullMQ worker
+        run: railway up --service agri-shield-worker --detach
+
+  notify:
+    name: Notify
+    needs: [gate, vercel, railway]
+    if: always() && needs.gate.outputs.has_notify == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post deployment summary
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MSG: "Agri-SHIELD deploy ${{ github.sha }} by ${{ github.actor }} | vercel: ${{ needs.vercel.result }} | railway: ${{ needs.railway.result }} | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: |
+          payload=$(jq -n --arg t "$MSG" '{text: $t, content: $t}')
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then curl -fsS -X POST -H 'Content-Type: application/json' -d "$payload" "$SLACK_WEBHOOK_URL"; fi
+          if [ -n "$DISCORD_WEBHOOK_URL" ]; then curl -fsS -X POST -H 'Content-Type: application/json' -d "$payload" "$DISCORD_WEBHOOK_URL"; fi

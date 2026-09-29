@@ -1,0 +1,39 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm turbo build --filter=@agri-shield/web",
+  "outputDirectory": "apps/web/.next",
+  "regions": ["sin1", "bom1"],
+  "functions": {
+    "apps/web/app/api/**/*.ts": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/v1/cron/climate-scan", "schedule": "*/30 * * * *" },
+    { "path": "/api/v1/cron/notification-dispatch", "schedule": "*/5 * * * *" },
+    { "path": "/api/v1/cron/satellite-ingest", "schedule": "0 2 * * *" },
+    { "path": "/api/v1/cron/model-retrain", "schedule": "0 3 * * 0" }
+  ],
+  "headers": [
+    {
+      "source": "/api/v1/risk",
+      "headers": [{ "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" }]
+    },
+    {
+      "source": "/api/v1/openapi.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/api/v1/(health|sms/inbound|alerts/webhook|cron/.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.agrishield.io" }],
+      "destination": "https://agrishield.io/:path*",
+      "permanent": true
+    }
+  ]
+}

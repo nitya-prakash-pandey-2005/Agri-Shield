@@ -1,0 +1,34 @@
+# Build context = repo root (apps/web/Dockerfile). Keep it lean and secret-free.
+**/node_modules
+**/.next
+**/.next-*
+**/.turbo
+**/.vercel
+**/coverage
+**/playwright-report
+**/test-results
+**/*.tsbuildinfo
+**/.DS_Store
+**/npm-debug.log*
+**/.pnpm-store
+
+# VCS / CI / editor
+.git
+.github
+.vscode
+.idea
+
+# Secrets — inject at runtime, never bake into images
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python service has its own image/context
+apps/ml-api
+**/__pycache__
+**/.venv
+**/*.pyc
+
+# Local DB/cache state
+**/cj
+**/*.log

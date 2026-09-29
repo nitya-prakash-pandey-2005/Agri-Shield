@@ -11,7 +11,10 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "worker": "tsx server/workers/index.ts",
+    "test:watch": "vitest",
+    "test:e2e:list": "playwright test --list"
   },
   "dependencies": {
     "@agri-shield/db": "workspace:*",

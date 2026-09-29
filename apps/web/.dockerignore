@@ -1,0 +1,16 @@
+# Used only when building with apps/web as the context. The supported build is from
+# the repo root (docker build -f apps/web/Dockerfile .), governed by /.dockerignore.
+node_modules
+.next
+.next-*
+.turbo
+.vercel
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+cj
+*.log

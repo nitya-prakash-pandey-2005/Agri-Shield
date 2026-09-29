@@ -1,7 +1,15 @@
-version: "3.9"
+# Agri-SHIELD local stack
+#   docker compose up -d postgres redis          # data services only
+#   docker compose up -d                         # + ML API + web (http://localhost:3000)
+#   ENABLE_WORKERS=true docker compose --profile workers up -d   # + BullMQ worker
+# Everything is optional: the web app also runs standalone on its in-memory store.
 
 services:
   postgres:
+    # PostGIS 16. For TimescaleDB hypertables + pgvector in one image, swap to:
+    #   image: timescale/timescaledb-ha:pg16
+    #   (runs as uid 1000; change the volume to postgres_data:/home/postgres/pgdata/data)
+    # scripts/init-db.sql enables timescaledb / vector only when available.
     image: postgis/postgis:16-3.4
     container_name: agri-shield-postgres
     environment:
@@ -12,12 +20,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agrishield"]
+      test: ["CMD-SHELL", "pg_isready -U agrishield -d agrishield"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -32,6 +41,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   ml-api:
     build:
@@ -44,16 +54,86 @@ services:
       - OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
       - SOILGRIDS_BASE_URL=https://rest.isric.org/soilgrids/v2.0
       - DATABASE_URL=postgresql://agrishield:agrishield_dev_password@postgres:5432/agrishield
+      - REDIS_URL=redis://redis:6379
+      - ML_API_KEY=${ML_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health/ || python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health/')\""]
       interval: 15s
       timeout: 10s
       retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: agri-shield-web:local
+    container_name: agri-shield-web
+    ports:
+      - "3000:3000"
+    environment: &web_env
+      NODE_ENV: production
+      PORT: "3000"
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      AUTH_SECRET: ${AUTH_SECRET:-local-compose-secret-change-me-0f3c9a1b2c3d4e5f}
+      NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-true}
+      AGRI_OFFLINE: ${AGRI_OFFLINE:-false}
+      DATABASE_URL: postgresql://agrishield:agrishield_dev_password@postgres:5432/agrishield
+      REDIS_URL: redis://redis:6379
+      ML_API_URL: http://ml-api:8000
+      ML_API_KEY: ${ML_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      INBOUND_WEBHOOK_SECRET: ${INBOUND_WEBHOOK_SECRET:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER:-}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      DEEPL_API_KEY: ${DEEPL_API_KEY:-}
+      # false : in-process timer scheduler inside the web container (default, demo store).
+      # true  : BullMQ repeatable jobs on Redis. With WORKER_MODE=inline the web
+      #         container also runs the workers (shares the in-memory demo store);
+      #         with WORKER_MODE=external only the `workers` profile consumes them
+      #         (use with DATABASE_URL so both processes share Postgres).
+      ENABLE_WORKERS: ${ENABLE_WORKERS:-false}
+      WORKER_MODE: ${WORKER_MODE:-inline}
+    depends_on:
+      redis:
+        condition: service_healthy
+      ml-api:
+        condition: service_started
+    restart: unless-stopped
+
+  # Opt-in BullMQ worker: `docker compose --profile workers up -d`
+  # Runs server/workers/index.ts via tsx (a devDependency kept in the image's node_modules).
+  worker:
+    profiles: ["workers"]
+    image: agri-shield-web:local
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: agri-shield-worker
+    command: ["npx", "tsx", "server/workers/index.ts"]
+    environment:
+      <<: *web_env
+      ENABLE_WORKERS: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    healthcheck:
+      disable: true
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -10,7 +10,13 @@
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + 2>/dev/null; true"
+    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + 2>/dev/null; true",
+    "db:up": "docker compose up -d postgres",
+    "db:generate": "pnpm --filter @agri-shield/db db:generate",
+    "db:migrate": "pnpm --filter @agri-shield/db db:migrate",
+    "db:rls": "docker exec -i agri-shield-postgres psql -v ON_ERROR_STOP=1 -U agrishield -d agrishield < scripts/rls-policies.sql",
+    "db:seed": "pnpm --filter @agri-shield/web exec tsx --tsconfig ../../scripts/tsconfig.json ../../scripts/seed.ts",
+    "db:setup": "pnpm db:up && pnpm db:migrate && pnpm db:rls && pnpm db:seed"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

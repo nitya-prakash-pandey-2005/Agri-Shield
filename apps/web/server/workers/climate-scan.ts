@@ -1,50 +1,15 @@
-import { Queue, Worker, Job } from 'bullmq';
+/**
+ * BullMQ processor: CLIMATE_SCAN (every 30 min).
+ * Thin wrapper — the job logic lives in server/jobs/climate-scan.ts so the
+ * in-process scheduler, Vercel cron, admin "Run now" and BullMQ share one code path.
+ */
+import type { Job } from "bullmq";
+import { triggerJob } from "../jobs";
 
-// In a real app, this connects to Redis.
-// We'll stub it out for the hackathon so it runs without requiring a Redis server locally.
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-};
+export const CLIMATE_SCAN_QUEUE = "climate-scan";
 
-export const climateScanQueue = new Queue('climate-scan', { 
-    connection,
-    defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 5000 }
-    }
-});
-
-// Worker
-const worker = new Worker('climate-scan', async (job: Job) => {
-  console.log(`[Worker: Climate Scan] Processing job ${job.id}`);
-  const { farmId, lat, lon } = job.data;
-  
-  try {
-      // 1. Fetch latest weather and soil data via ML API
-      console.log(`[Worker: Climate Scan] Fetching ML API predictions for farm ${farmId} at ${lat}, ${lon}`);
-      
-      // In real implementation:
-      // const res = await fetch(`http://localhost:8000/api/v1/flood-risk/predict?lat=${lat}&lon=${lon}`);
-      // const data = await res.json();
-      
-      // Simulate API response processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log(`[Worker: Climate Scan] Completed analysis for farm ${farmId}`);
-      return { success: true, timestamp: new Date().toISOString() };
-  } catch (error) {
-      console.error(`[Worker: Climate Scan] Failed job ${job.id}:`, error);
-      throw error;
-  }
-}, { connection, autorun: false });
-
-export const startClimateScanWorker = () => {
-    // Only run if Redis is configured or in specific environments
-    if (process.env.ENABLE_WORKERS === 'true') {
-        worker.run();
-        console.log('[Worker: Climate Scan] Started');
-    } else {
-        console.log('[Worker: Climate Scan] Disabled (set ENABLE_WORKERS=true to run)');
-    }
-};
+export async function processClimateScan(job: Job) {
+  const run = await triggerJob("climate-scan", "bullmq", (job.data?.triggeredBy as string) ?? "bullmq");
+  if (run.status === "failed") throw new Error(run.error ?? run.summary);
+  return { runId: run.id, status: run.status, summary: run.summary };
+}

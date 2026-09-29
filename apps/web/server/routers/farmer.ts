@@ -40,6 +40,7 @@ import { publish } from "../realtime";
 import { sendEmail } from "../notify/channels";
 import { markDeliveryRead } from "../data/gov-store";
 import { cropDamageProbability, scoreFlood } from "../risk/scoring";
+import { farmToolProcedures } from "../services/farm-procedures";
 
 const proc = permitted("view_farm_data");
 
@@ -1037,4 +1038,8 @@ export const farmerRouter = router({
     // Same response whether or not the account exists (no user enumeration).
     return { ok: true, expiresInMin: 30 };
   }),
+
+  // Farmer tools v2 — irrigation, season planner, market prices, Crop Doctor, finance,
+  // insurance, nowcast, ask-an-expert and Today's actions (server/services/farm-procedures.ts)
+  ...farmToolProcedures,
 });

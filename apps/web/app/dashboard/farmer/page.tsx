@@ -13,6 +13,7 @@ import { RiskStatus, SatelliteCard, WeatherToday } from "@/components/farmer/hom
 import { ForecastStrip } from "@/components/farmer/home/ForecastStrip";
 import { FieldsGrid } from "@/components/farmer/home/FieldsGrid";
 import { useMarkActioned, useTranslated } from "@/components/farmer/hooks";
+import { TodayActions } from "@/components/farmer/TodayActions";
 
 const PRIORITY_COLOR: Record<string, string> = { urgent: "#f87171", high: "#fb923c", medium: "#fbbf24", low: "#4ade80" };
 
@@ -150,6 +151,9 @@ export default function FarmerHome() {
   return (
     <div className="mx-auto max-w-[1400px]">
       <Greeting />
+      <div className="mb-4">
+        <TodayActions />
+      </div>
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RiskStatus risk={risk.data} loading={risk.isLoading} />

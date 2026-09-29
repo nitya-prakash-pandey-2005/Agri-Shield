@@ -2,7 +2,8 @@
 
 /**
  * Farmer portal chrome — mobile-first PWA layout:
- *   · mobile: sticky top bar + fixed bottom nav (Home / Map / Alerts / Advisor / Profile)
+ *   · mobile: sticky top bar + fixed bottom nav (Home / Map / Tools / Alerts / Advisor);
+ *     Profile sits in the top bar, the extra tools live on the Tools hub
  *   · desktop: sidebar with live risk mini-panel
  * Also: onboarding redirect, offline banner, demo-preview banner and the
  * realtime subscription (farmer + district rooms) that refreshes data and toasts.
@@ -12,7 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, Bot, Home, LogOut, Map as MapIcon, Shield, User, WifiOff, Eye } from "lucide-react";
+import { Bell, Bot, CalendarDays, Droplets, Home, LayoutGrid, LogOut, Map as MapIcon, MessageCircleQuestion, Shield, Stethoscope, Store, User, Wallet, WifiOff, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -71,12 +72,22 @@ export function FarmerShell({ children }: { children: ReactNode }) {
   });
 
   const activeCount = alerts.data?.active.filter((a) => !a.actioned && a.kind !== "advisory").length ?? 0;
+  // Bottom nav holds max 5 items; Profile moves to the top bar on mobile.
   const nav = [
     { href: BASE, label: t("nav.home"), icon: Home },
     { href: `${BASE}/map`, label: t("nav.map"), icon: MapIcon },
+    { href: `${BASE}/tools`, label: t("nav.tools"), icon: LayoutGrid },
     { href: `${BASE}/alerts`, label: t("nav.alerts"), icon: Bell, badge: activeCount },
     { href: `${BASE}/advisor`, label: t("nav.advisor"), icon: Bot },
-    { href: `${BASE}/profile`, label: t("nav.profile"), icon: User },
+  ];
+  const sideNav = [...nav, { href: `${BASE}/profile`, label: t("nav.profile"), icon: User }];
+  const toolLinks = [
+    { href: `${BASE}/tools/irrigation`, label: t("tools.irr.title"), icon: Droplets },
+    { href: `${BASE}/tools/planner`, label: t("tools.plan.title"), icon: CalendarDays },
+    { href: `${BASE}/tools/market`, label: t("tools.mkt.title"), icon: Store },
+    { href: `${BASE}/tools/doctor`, label: t("tools.doc.title"), icon: Stethoscope },
+    { href: `${BASE}/tools/finance`, label: t("tools.fin.title"), icon: Wallet },
+    { href: `${BASE}/tools/ask`, label: t("tools.ask.title"), icon: MessageCircleQuestion },
   ];
   const isActive = (href: string) => (href === BASE ? pathname === BASE : pathname.startsWith(href));
   const isMap = pathname.startsWith(`${BASE}/map`);
@@ -114,6 +125,9 @@ export function FarmerShell({ children }: { children: ReactNode }) {
             )}
             <LiveDot className="hidden sm:inline-flex" label={t("common.live").toUpperCase()} />
             <LanguageSwitcher />
+            <Link href={`${BASE}/profile`} className={cn("grid h-9 w-9 place-items-center rounded-full lg:hidden", pathname.startsWith(`${BASE}/profile`) ? "bg-emerald-500 text-slate-950" : "bg-white/5 text-slate-300")} aria-label={t("nav.profile")}>
+              {name ? <span className="text-xs font-semibold">{name[0]}</span> : <User size={16} />}
+            </Link>
             {name && (
               <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-white/10">
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-500 text-xs font-semibold text-slate-950">{name[0]}</div>
@@ -138,8 +152,8 @@ export function FarmerShell({ children }: { children: ReactNode }) {
       <div className="flex">
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex sticky top-14 h-[calc(100vh-3.5rem)] w-60 shrink-0 flex-col border-r border-white/5 bg-[#070c1a]/70" aria-label={t("nav.mainNavigation")}>
-          <nav className="flex flex-col gap-1 p-3">
-            {nav.map(({ href, label, icon: Icon, badge }) => {
+          <nav className="flex flex-col gap-1 overflow-y-auto p-3">
+            {sideNav.map(({ href, label, icon: Icon, badge }) => {
               const active = isActive(href);
               return (
                 <Link key={href} href={href} className={cn("group relative flex min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm transition-colors", active ? "text-white" : "text-slate-400 hover:text-slate-100 hover:bg-white/[0.03]")} aria-current={active ? "page" : undefined}>
@@ -150,6 +164,18 @@ export function FarmerShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            <div className="mt-2 border-t border-white/5 pt-2">
+              <div className="hud-label px-3 pb-1">{t("nav.tools")}</div>
+              {toolLinks.map(({ href, label, icon: Icon }) => {
+                const active = pathname.startsWith(href);
+                return (
+                  <Link key={href} href={href} className={cn("flex min-h-[38px] items-center gap-2.5 rounded-lg px-3 text-[13px]", active ? "bg-emerald-500/10 text-white" : "text-slate-500 hover:bg-white/[0.03] hover:text-slate-200")} aria-current={active ? "page" : undefined}>
+                    <Icon size={15} className={active ? "text-emerald-400" : undefined} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
           <div className="mt-auto p-3">
             <div className="hud-panel p-3 text-[11px]">

@@ -29,6 +29,7 @@ import type { GovMapDistrict, GovMapHazard } from "@/components/maps/GovMap";
 import { useGovInput } from "@/components/government/scope";
 import { DistrictDrawer } from "@/components/government/overview-DistrictDrawer";
 import { OpsFeed } from "@/components/government/overview-OpsFeed";
+import { OfficerInbox } from "@/components/farmer/OfficerInbox";
 import { ago, ErrorNote, fmtInt, fmtNum, fmtUsd, HAZARD_COLOR, ramp, Segmented } from "@/components/government/ui";
 
 const GovMap = dynamic(() => import("@/components/maps/GovMap"), {
@@ -299,6 +300,7 @@ export default function GovernmentOverviewPage() {
           </Panel>
 
           <OpsFeed />
+          <OfficerInbox />
         </div>
       </div>
     </div>

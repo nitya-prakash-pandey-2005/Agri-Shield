@@ -47,8 +47,6 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""
 
     # LLM provider chain for the advisor (first configured provider wins)
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-opus-5-5"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     groq_api_key: str = ""

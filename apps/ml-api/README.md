@@ -113,7 +113,7 @@ A vectorised numpy Monte Carlo simulation with these steps:
 
 - **Knowledge base.** 34 markdown guides in `rag/knowledge/`, each with front-matter `source:` citing FAO, IRRI, CGIAR or national agencies. They are chunked by section.
 - **Retrieval.** TF-IDF (1–2-grams) cosine similarity for the top 5 chunks, with country, crop and hazard boosts.
-- **Generation.** The provider chain is `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → `GROQ_API_KEY` → `OLLAMA_BASE_URL`. The prompt uses the spec §5.3 system prompt with the farmer's live numbers and the numbered passages.
+- **Generation.** The provider chain is `OPENAI_API_KEY` → `GROQ_API_KEY` → `OLLAMA_BASE_URL`. The prompt uses the spec §5.3 system prompt with the farmer's live numbers and the numbered passages.
 - **Local fallback.** With no provider available, the **local grounded composer** (`provider: "local-grounded"`, not an LLM) builds the answer from the farmer's context compared against thresholds, plus actionable steps extracted from the retrieved passages, cited as [n].
 - **Action cards.** Extracted from the final text.
 - **Translation.** LLMs answer directly in the farmer's language. Composer output is translated with DeepL (if `DEEPL_API_KEY` is set) or MyMemory, in chunks of ≤ 480 characters with markdown preserved. Filipino maps to `tl`.
@@ -162,10 +162,9 @@ The 30-day class precision, which is used as the API `confidence`, is 0.95 for s
 |---|---|---|
 | `CORS_ORIGINS` | localhost:3000/3001, agrishield.io | comma-separated or JSON list |
 | `ML_API_KEY` | empty | protects `POST /api/ml/retrain` |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | –, `claude-opus-5-5` | advisor provider 1 |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | –, `gpt-4o-mini` | provider 2 |
-| `GROQ_API_KEY`, `GROQ_MODEL` | –, `llama-3.3-70b-versatile` | provider 3 (free tier) |
-| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | –, `llama3.1:8b` | provider 4 (local open-source) |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | –, `gpt-4o-mini` | advisor provider 1 |
+| `GROQ_API_KEY`, `GROQ_MODEL` | –, `llama-3.3-70b-versatile` | provider 2 (free tier) |
+| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | –, `llama3.1:8b` | provider 3 (local open-source) |
 | `DEEPL_API_KEY`, `MYMEMORY_EMAIL` | – | translation (MyMemory is key-less; an email raises its quota) |
 | `MODEL_WEIGHTS_DIR` | `./model_weights` | weights and metrics |
 | `TRAIN_ON_STARTUP` | `true` | background training when weights are missing |

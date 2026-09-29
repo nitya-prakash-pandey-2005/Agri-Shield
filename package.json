@@ -33,5 +33,6 @@
   },
   "packageManager": "pnpm@11.14.0",
   "description": "AI-powered climate decision intelligence for farmers, governments and supply chains across Asia",
-  "author": "Nitya Prakash Pandey"
+  "author": "Nitya Prakash Pandey",
+  "license": "MIT"
 }

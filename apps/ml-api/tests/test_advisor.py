@@ -83,11 +83,11 @@ def test_translation_failure_falls_back_to_english(monkeypatch):
 def test_llm_provider_used_when_available(monkeypatch):
     async def fake_generate(system, messages):
         assert "Current flood risk is 84%" in system and "[1]" in system
-        return "1. Drain the field now [1].\n2. Harvest mature rice.", "anthropic:claude-opus-5-5"
+        return "1. Drain the field now [1].\n2. Harvest mature rice.", "groq:llama-3.3-70b-versatile"
 
     monkeypatch.setattr(advisor_mod, "generate", fake_generate)
     res = _ask("What now?", FLOOD_CTX)
-    assert res["provider"].startswith("anthropic") and res["language"] == "en"
+    assert res["provider"].startswith("groq") and res["language"] == "en"
     assert {"drain", "early_harvest"} <= {a["id"] for a in res["actions"]}
 
 

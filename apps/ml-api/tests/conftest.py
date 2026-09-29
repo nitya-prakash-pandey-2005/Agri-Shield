@@ -22,7 +22,7 @@ sys.path.insert(0, str(APP_DIR))
 from config import settings  # noqa: E402
 
 settings.train_on_startup = False
-settings.anthropic_api_key = settings.openai_api_key = settings.groq_api_key = settings.ollama_base_url = ""
+settings.openai_api_key = settings.groq_api_key = settings.ollama_base_url = ""
 settings.deepl_api_key = ""
 settings.ml_api_key = ""
 

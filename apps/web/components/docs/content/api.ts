@@ -213,7 +213,7 @@ Returns \`ec_current\`, \`ec_predicted_7d\`, \`ec_predicted_30d\`, \`ec_predicte
 
 Response: \`answer\` (Markdown), \`actions[]\` (\`id\`, \`label\`, \`description\`, \`urgency\`), \`sources[]\` (retrieved knowledge snippets with scores), \`confidence\`, \`language\`, \`provider\`, \`translation\`, \`latency_ms\`.
 
-Answers are grounded with TF-IDF retrieval over the service's agronomy knowledge base (top 5 chunks). The first configured LLM provider answers: Anthropic (\`ANTHROPIC_API_KEY\`), OpenAI (\`OPENAI_API_KEY\`), Groq (\`GROQ_API_KEY\`) or a local Ollama (\`OLLAMA_BASE_URL\`). With none configured, a deterministic composer builds the answer from the retrieved guidance (\`provider: "local-grounded"\`) and it is translated with DeepL or MyMemory.
+Answers are grounded with TF-IDF retrieval over the service's agronomy knowledge base (top 5 chunks). The first configured LLM provider answers: OpenAI (\`OPENAI_API_KEY\`), Groq (\`GROQ_API_KEY\`) or a local Ollama (\`OLLAMA_BASE_URL\`). With none configured, a deterministic composer builds the answer from the retrieved guidance (\`provider: "local-grounded"\`) and it is translated with DeepL or MyMemory.
 
 ## POST /api/ml/supply-chain/scenario
 

@@ -8,7 +8,7 @@ Pipeline (spec §5.3):
 2. Retrieve the top-5 knowledge-base chunks (TF-IDF cosine + metadata boosts)
    from ``rag/knowledge/`` — FAO / IRRI / CGIAR / national-agency grounded guides.
 3. Build the spec system prompt with the farmer's numbers and the passages.
-4. Generate with the provider chain (Anthropic → OpenAI → Groq → Ollama); when
+4. Generate with the provider chain (OpenAI → Groq → Ollama); when
    no provider is available, the *local grounded composer* builds the answer
    deterministically from the same context and passages (provider
    ``local-grounded``).

@@ -54,7 +54,7 @@ The two primary climate threats are **saltwater intrusion** (slow-onset, soil-sa
 - **Salinity Intrusion Model:** Random Forest + XGBoost ensemble on soil EC sensor + satellite NDWI/NDSI indices
 - **Crop Risk Scoring:** Gradient Boosting (LightGBM) on crop type × climate risk × soil health matrix
 - **Supply Chain Impact Predictor:** Time-series forecasting (Prophet + custom LSTM) on commodity price × flood zone overlap
-- **Recommendation Engine:** RAG pipeline using LangChain + GPT-4o / Claude 3.5 Sonnet for natural language advisory
+- **Recommendation Engine:** RAG pipeline using LangChain + GPT-4o / open-source LLMs (Llama via Groq or Ollama) for natural language advisory
 - **Satellite Processing:** Google Earth Engine Python API (NDVI, NDWI, SAR flood mapping via Sentinel-1)
 - **Model Serving:** BentoML or FastAPI with model versioning
 - **Experiment Tracking:** MLflow
@@ -613,7 +613,7 @@ Response: {
 2. Embed question via `text-embedding-3-small`
 3. Retrieve top 5 chunks from pgvector knowledge base
 4. Build system prompt: `You are Agri-SHIELD's farm advisor. The farmer's name is {name}, they grow {crops} on {area}ha in {district}. Current flood risk is {risk}%. Current salinity EC is {ec} dS/m. Today's forecast: {forecast}.`
-5. Call Claude 3.5 Sonnet or GPT-4o with RAG context
+5. Call GPT-4o or an open-source LLM (Llama via Groq/Ollama) with RAG context
 6. Post-process: extract action items, confidence level, sources cited
 7. Translate if needed (DeepL API)
 8. Return structured response with actions + sources
@@ -1256,7 +1256,8 @@ RAZORPAY_KEY_SECRET=
 
 # LLM
 OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
+GROQ_API_KEY=
+OLLAMA_BASE_URL=
 
 # Monitoring
 SENTRY_DSN=

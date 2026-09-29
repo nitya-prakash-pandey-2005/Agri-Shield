@@ -3,10 +3,9 @@ LLM provider chain — Agri-SHIELD advisor
 ========================================
 Tried in order; the first configured provider that answers wins:
 
-1. Anthropic Messages API   (ANTHROPIC_API_KEY)
-2. OpenAI Chat Completions  (OPENAI_API_KEY)
-3. Groq (OpenAI-compatible, free tier; GROQ_API_KEY)
-4. Ollama local open-source model (OLLAMA_BASE_URL)
+1. OpenAI Chat Completions  (OPENAI_API_KEY)
+2. Groq (OpenAI-compatible, free tier; GROQ_API_KEY)
+3. Ollama local open-source model (OLLAMA_BASE_URL)
 
 If none is configured or all fail, the advisor uses the local grounded composer
 (``rag/composer.py``), which is not an LLM and reports provider ``local-grounded``.
@@ -23,36 +22,6 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 Message = dict  # {"role": "user"|"assistant", "content": str}
-
-
-async def _anthropic(system: str, messages: list[Message]) -> Optional[str]:
-    headers = {
-        "x-api-key": settings.anthropic_api_key,
-        "anthropic-version": "2023-06-01",
-        # Server-side fallback: if a request is declined, the API re-runs it on the
-        # recommended fallback model inside the same call.
-        "anthropic-beta": "server-side-fallback-2026-07-01",
-        "content-type": "application/json",
-    }
-    body = {
-        "model": settings.anthropic_model,
-        "max_tokens": 16000,
-        "system": system,
-        "messages": messages,
-        "output_config": {"effort": "low"},
-        "fallbacks": "default",
-    }
-    async with httpx.AsyncClient(timeout=settings.llm_timeout_s) as client:
-        r = await client.post("https://api.anthropic.com/v1/messages", headers=headers, json=body)
-    if r.status_code != 200:
-        logger.warning("Anthropic HTTP %s: %s", r.status_code, r.text[:200])
-        return None
-    data = r.json()
-    if data.get("stop_reason") == "refusal":
-        logger.warning("Anthropic declined the request (%s)", (data.get("stop_details") or {}).get("category"))
-        return None
-    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text").strip()
-    return text or None
 
 
 async def _openai_compatible(url: str, key: str, model: str, system: str, messages: list[Message]) -> Optional[str]:
@@ -90,8 +59,6 @@ async def _ollama(system: str, messages: list[Message]) -> Optional[str]:
 
 def configured_providers() -> list[str]:
     out = []
-    if settings.anthropic_api_key:
-        out.append("anthropic")
     if settings.openai_api_key:
         out.append("openai")
     if settings.groq_api_key:
@@ -105,10 +72,7 @@ async def generate(system: str, messages: list[Message]) -> tuple[Optional[str],
     """Return (text, provider label) from the first provider that succeeds, else (None, None)."""
     for name in configured_providers():
         try:
-            if name == "anthropic":
-                text = await _anthropic(system, messages)
-                label = f"anthropic:{settings.anthropic_model}"
-            elif name == "openai":
+            if name == "openai":
                 text = await _openai_compatible("https://api.openai.com/v1/chat/completions", settings.openai_api_key, settings.openai_model, system, messages)
                 label = f"openai:{settings.openai_model}"
             elif name == "groq":

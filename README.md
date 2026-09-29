@@ -137,3 +137,7 @@ CI (`.github/workflows/ci.yml`) runs the type-check, both test suites, a product
 ## Author
 
 **Nitya Prakash Pandey**, product, design, engineering and ML.
+
+## License
+
+[MIT](LICENSE) © 2026 Nitya Prakash Pandey

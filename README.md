@@ -239,7 +239,7 @@ docs/         Product specification and screenshots
 
 ## 🚀 Quick start
 
-**Prerequisites:** Node.js 20+, pnpm 9+, Python 3.11+.
+**Prerequisites:** Node.js 20+, pnpm 9+, Python 3.12+.
 
 ```bash
 git clone https://github.com/nitya-prakash-pandey-2005/Agri-Shield.git

@@ -18,7 +18,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.12"   # matches apps/ml-api/Dockerfile; numpy 2.5 / pandas 3 need >= 3.12
   NEXT_TELEMETRY_DISABLED: "1"
   TURBO_TELEMETRY_DISABLED: "1"
   AGRI_OFFLINE: "true"

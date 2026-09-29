@@ -113,10 +113,12 @@ export const userRoleEnum = pgEnum("user_role", [
   "national_admin",
   "supply_chain_analyst",
   "supply_chain_admin",
+  "enterprise_analyst",
+  "enterprise_admin",
   "platform_admin",
 ]);
 export const userStatusEnum = pgEnum("user_status", ["active", "suspended", "pending_verification"]);
-export const orgTypeEnum = pgEnum("org_type", ["government", "supply_chain", "ngo"]);
+export const orgTypeEnum = pgEnum("org_type", ["government", "supply_chain", "ngo", "insurance", "bank", "cooperative"]);
 export const adminLevelEnum = pgEnum("admin_level", ["national", "provincial", "district"]);
 export const riskLevelEnum = pgEnum("risk_level", ["low", "medium", "high", "critical"]);
 export const alertTypeEnum = pgEnum("alert_type", ["flood", "salinity", "drought", "storm", "frost"]);
@@ -124,7 +126,7 @@ export const alertSeverityEnum = pgEnum("alert_severity", ["watch", "warning", "
 export const alertSourceEnum = pgEnum("alert_source", ["model", "manual", "gdacs", "eonet"]);
 export const alertChannelEnum = pgEnum("alert_channel", ["app", "sms", "whatsapp", "email"]);
 export const deliveryStatusEnum = pgEnum("delivery_status", ["queued", "sent", "simulated", "delivered", "failed"]);
-export const subscriptionPlanEnum = pgEnum("subscription_plan", ["free", "farmer_pro", "gov_basic", "gov_enterprise", "supply_chain"]);
+export const subscriptionPlanEnum = pgEnum("subscription_plan", ["free", "farmer_pro", "gov_basic", "gov_enterprise", "supply_chain", "business", "enterprise"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "past_due", "cancelled", "trialing"]);
 export const paymentProviderEnum = pgEnum("payment_provider", ["stripe", "razorpay", "paymongo", "none"]);
 export const resourceTypeEnum = pgEnum("resource_type", ["pumps", "sandbags", "evacuation_buses", "medical", "food_aid"]);

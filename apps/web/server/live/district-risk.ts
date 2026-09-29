@@ -88,6 +88,7 @@ async function refresh(): Promise<void> {
     d.seaLevelAnomalyM = seaLevel == null ? null : Math.round(seaLevel * 100) / 100;
     d.riskLevel = riskLevelFromScore(Math.max(d.floodRisk, d.salinityRisk * 0.9));
     d.liveSource = "open-meteo";
+    d.riskModel = "web-formula-v1.2";
     d.lastUpdated = new Date();
   });
 
@@ -126,7 +127,7 @@ async function overlayModelOutputs(districts: DistrictRecord[]) {
         d.floodProb48h = fl.value.probability_48h;
         d.floodProb72h = fl.value.probability_72h;
         d.floodRisk = Math.round(fl.value.probability_72h * 100);
-        d.liveSource = "ml-model";
+        d.riskModel = fl.value.model_version;
       }
       if (sa.status === "fulfilled" && sa.value.source === "ml-api") {
         d.ecCurrent = sa.value.ec_current;

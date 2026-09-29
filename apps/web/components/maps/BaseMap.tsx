@@ -80,6 +80,7 @@ export default function BaseMap({
   useEffect(() => {
     let cleanup: void | (() => void);
     let disposed = false;
+    let resizeObs: ResizeObserver | null = null;
     import("leaflet").then((mod) => {
       const L = (mod.default ?? mod) as typeof Leaflet;
       if (disposed || !el.current || mapRef.current) return;
@@ -90,11 +91,19 @@ export default function BaseMap({
       tileRef.current = L.tileLayer(b.url, { attribution: b.attribution, maxNativeZoom: b.maxNativeZoom, maxZoom: 18 }).addTo(map);
       if (current === "dark") labelRef.current = L.tileLayer(DARK_LABELS, { maxNativeZoom: 16, maxZoom: 18, pane: "shadowPane" }).addTo(map);
       L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
-      cleanup = onReady?.(map, L);
-      setTimeout(() => map.invalidateSize(), 50);
+      // Keep Leaflet in sync with layout changes (drawers, tabs, responsive grids)
+      resizeObs = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+      resizeObs.observe(el.current);
+      // Hand the map to the page only once it has its real size, so fitBounds() is accurate
+      requestAnimationFrame(() => {
+        if (disposed) return;
+        map.invalidateSize({ pan: false });
+        cleanup = onReady?.(map, L);
+      });
     });
     return () => {
       disposed = true;
+      resizeObs?.disconnect();
       if (typeof cleanup === "function") cleanup();
       mapRef.current?.remove();
       mapRef.current = null;

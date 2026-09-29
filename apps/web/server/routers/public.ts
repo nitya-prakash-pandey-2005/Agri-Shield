@@ -52,6 +52,7 @@ export const publicRouter = router({
           rainfall72hMm: d.rainfall72hMm,
           riverDischargeM3s: d.riverDischargeM3s,
           liveSource: d.liveSource,
+          riskModel: d.riskModel ?? null,
           lastUpdated: d.lastUpdated,
         }));
     }),

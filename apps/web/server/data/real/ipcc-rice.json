@@ -1,0 +1,75 @@
+{
+  "note": "Tier 1 emission factors and scaling factors for rice methane, fertiliser N2O and urea CO2, plus AWD water-saving evidence. Used by server/services/carbon.ts and water-footprint.ts. Author: Nitya Prakash Pandey. Compiled 2026-09-29.",
+  "sources": {
+    "ipcc2019_ch5": "IPCC (2019) 2019 Refinement to the 2006 IPCC Guidelines for National Greenhouse Gas Inventories, Vol. 4 (AFOLU), Ch. 5 Cropland, §5.5 Methane emissions from rice cultivation — Eq. 5.1-5.3, Tables 5.11-5.14. https://www.ipcc-nggip.iges.or.jp/public/2019rf/vol4.html",
+    "ipcc2019_ch11": "IPCC (2019) 2019 Refinement, Vol. 4, Ch. 11 N2O emissions from managed soils and CO2 emissions from lime and urea application — Eq. 11.1, 11.9-11.10, 11.13; Table 11.1 and 11.3.",
+    "ar6": "IPCC AR6 WG1 (2021) Ch. 7, Table 7.15: GWP-100 CH4 (non-fossil origin) 27.0 ± 11, CH4 (fossil) 29.8 ± 11, N2O 273 ± 130.",
+    "awd_water": "Carrijo, Lundy & Linquist (2017) Rice yields and water use under alternate wetting and drying irrigation: a meta-analysis. Field Crops Research 203:173-180 — AWD cut water use 25.7 % on average; 'safe/mild' AWD (≥ −20 kPa) had no significant yield penalty. Lampayan et al. (2015) Field Crops Research 170:95-108 — 15-30 % water savings in Bangladesh, Philippines and Viet Nam.",
+    "verra": "Verra VM0051 Improved Management in Rice Production Systems v1.0 (2023). Figures here are an indicative Tier 1 estimate, NOT a VM0051 quantification: a verified project needs a validated baseline, monitoring (e.g. field water tubes / remote sensing), uncertainty deductions, leakage and third-party verification.",
+    "water_benchmark": "Mekonnen & Hoekstra (2011) The green, blue and grey water footprint of crops and derived crop products. HESS 15:1577-1600 — paddy rice global average 1,673 m³/t (green 1,146 · blue 341 · grey 187)."
+  },
+  "ch4": {
+    "efBaseline": { "value": 1.19, "low": 0.8, "high": 1.76, "unit": "kg CH4 ha-1 day-1", "table": "Table 5.11 (continuously flooded, no organic amendment, global default)" },
+    "efRegional": {
+      "_table": "Table 5.11A (regional baseline EFc)",
+      "southAsia": 0.85,
+      "southEastAsia": 1.22,
+      "eastAsia": 1.32
+    },
+    "regionOf": { "BD": "southAsia", "IN": "southAsia", "VN": "southEastAsia", "PH": "southEastAsia", "ID": "southEastAsia" },
+    "sfw": {
+      "_table": "Table 5.12 — scaling factor for the water regime during the cultivation period (aggregated case)",
+      "continuously_flooded": { "value": 1.0, "low": 0.73, "high": 1.27, "label": "Continuously flooded" },
+      "single_drainage": { "value": 0.71, "low": 0.53, "high": 0.94, "label": "Intermittently flooded — single drainage" },
+      "multiple_drainage": { "value": 0.55, "low": 0.41, "high": 0.72, "label": "Intermittently flooded — multiple drainage (AWD)" },
+      "regular_rainfed": { "value": 0.54, "low": 0.39, "high": 0.69, "label": "Rain-fed — regular" },
+      "drought_prone": { "value": 0.16, "low": 0.11, "high": 0.24, "label": "Rain-fed — drought prone" },
+      "deep_water": { "value": 0.06, "low": 0.03, "high": 0.08, "label": "Deep water" },
+      "upland": { "value": 0, "low": 0, "high": 0, "label": "Upland (never flooded)" }
+    },
+    "sfp": {
+      "_table": "Table 5.13 — scaling factor for the water regime before the cultivation period",
+      "non_flooded_lt180": { "value": 1.0, "label": "Non-flooded pre-season < 180 days" },
+      "non_flooded_gt180": { "value": 0.89, "label": "Non-flooded pre-season > 180 days" },
+      "flooded_gt30": { "value": 2.41, "label": "Flooded pre-season (> 30 days)" },
+      "non_flooded_gt365": { "value": 0.59, "label": "Non-flooded pre-season > 365 days" }
+    },
+    "cfoa": {
+      "_table": "Table 5.14 — conversion factor for organic amendment (SFo = (1 + Σ ROAi·CFOAi)^0.59; ROA in t dry weight/ha for straw, t fresh weight/ha otherwise)",
+      "none": { "value": 0, "label": "No organic amendment" },
+      "straw_short": { "value": 1.0, "label": "Straw incorporated < 30 days before cultivation" },
+      "straw_long": { "value": 0.19, "label": "Straw incorporated > 30 days before cultivation" },
+      "compost": { "value": 0.17, "label": "Compost" },
+      "fym": { "value": 0.21, "label": "Farmyard manure" },
+      "green_manure": { "value": 0.45, "label": "Green manure" }
+    },
+    "sfoExponent": 0.59
+  },
+  "n2o": {
+    "ef1Aggregated": { "value": 0.01, "low": 0.001, "high": 0.018, "table": "Table 11.1 EF1 (aggregated, kg N2O-N per kg N)" },
+    "ef1FloodedRice": { "value": 0.004, "low": 0.0, "high": 0.029, "table": "Table 11.1 EF1FR flooded rice" },
+    "ef1RiceByRegime": { "continuous": 0.003, "drainage": 0.005, "table": "Table 11.1 EF1FR disaggregated: continuous flooding 0.003; single and multiple drainage 0.005" },
+    "fracGasf": 0.11,
+    "ef4": 0.01,
+    "fracLeach": 0.24,
+    "ef5": 0.011,
+    "n2oPerN2oN": 1.5714285714
+  },
+  "urea": { "efTcPerTUrea": 0.2, "ureaNFrac": 0.46, "co2PerC": 3.6666666667, "note": "IPCC Eq. 11.13 — assumes all synthetic N is applied as urea (46 % N), the dominant N source for smallholder rice in S/SE Asia" },
+  "gwp100": { "ch4": 27.0, "ch4Fossil": 29.8, "n2o": 273, "source": "IPCC AR6 WG1 Table 7.15" },
+  "nRateKgHa": {
+    "_note": "Typical recommended/observed mineral N per season, rounded — replace with farm records (per-asset override). Sources: BRRI Adhunik Dhaner Chash (Aman ≈ 70-90 kg N/ha); OUAT/Odisha package of practices kharif rice 60-80; Mekong rice 90-110 (IRRI/CLRRI surveys); PhilRice PalayCheck ≈ 80-90; Java 100-130 (BPS/IRRI). Non-rice crops: typical recommended rates (assumed).",
+    "rice": { "BD": 80, "IN": 70, "VN": 100, "PH": 85, "ID": 115 },
+    "maize": 120, "vegetables": 100, "sugarcane": 150, "jute": 40, "onion": 100, "coconut": 50, "mango": 60, "wheat": 100, "potato": 120
+  },
+  "croppingIntensity": { "_note": "Rice seasons per year assumed for annualising (per-asset override). Irrigated land in the Mekong grows 2-3 crops; rain-fed Aman/kharif land is mostly single-cropped rice.", "irrigated": { "BD": 2, "IN": 2, "VN": 2.5, "PH": 2, "ID": 2 }, "rainfed": 1 },
+  "awd": {
+    "sfwBaseline": "continuously_flooded",
+    "sfwProject": "multiple_drainage",
+    "waterSavingPct": { "central": 27, "low": 25, "high": 30 },
+    "yieldEffectPct": 0,
+    "eligibility": "AWD needs water control: irrigated (canal / tube-well / pump) fields that are flooded through the season. Rain-fed and deep-water rice cannot be drained on demand, so they are not eligible."
+  },
+  "creditPrice": { "default": 15, "min": 5, "max": 40, "note": "Indicative voluntary-market price range for agricultural methane reduction credits, USD per t CO2e" },
+  "conservativenessPct": 15
+}

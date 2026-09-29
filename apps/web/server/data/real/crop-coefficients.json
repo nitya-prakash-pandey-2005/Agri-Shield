@@ -1,0 +1,217 @@
+{
+  "note": "Crop water-use, yield-response, heat and salinity parameters for the in-season yield model (server/services/yield-model.ts). Author: Nitya Prakash Pandey. Retrieved/compiled 2026-09-29.",
+  "sources": {
+    "fao56": "Allen, Pereira, Raes & Smith (1998) FAO Irrigation and Drainage Paper 56 — Crop evapotranspiration. Table 11 (stage lengths), Table 12 (Kc), Table 22 (rooting depth Zr, depletion fraction p). https://www.fao.org/4/x0490e/x0490e00.htm",
+    "fao33": "Doorenbos & Kassam (1979) FAO Irrigation and Drainage Paper 33 — Yield response to water, Table 24 (stage Ky); restated in Steduto et al. (2012) FAO-66. https://www.fao.org/4/i2800e/i2800e.pdf",
+    "cropwat": "FAO CROPWAT 8.0 default crop file RICE: Ky 1.00 / 1.09 / 1.32 / 0.50, seasonal 1.10",
+    "fao29": "Ayers & Westcot (1985) FAO Irrigation and Drainage Paper 29 rev.1 — Water quality for agriculture, Table 4 (Maas & Hoffman 1977 / Maas 1984 threshold ECe and slope b). https://www.fao.org/4/t0234e/t0234e00.htm",
+    "heat": "Rice: spikelet sterility above ~35 °C at anthesis (Yoshida 1981; Matsui et al. 2001; Jagadish et al. 2007 J. Exp. Bot. 58:1627). Maize: anthesis-silking sensitivity above ~35 °C (Sánchez et al. 2014 Field Crops Res.). Tomato/vegetables: fruit set fails above ~32 °C (Sato et al. 2006). Wheat: 31 °C at anthesis (Porter & Gawith 1999).",
+    "calendars": "FAO GIEWS Country Briefs crop calendars (BGD, IND, VNM, PHL, IDN) and USDA FAS IPAD crop calendars; season names follow national statistics (BBS Aman/Boro/Aus, Odisha kharif/rabi, GSO Winter-Spring/Summer-Autumn/Autumn-Winter, PSA wet/dry, BPS MT1/MT2).",
+    "irrigation": "Irrigated share of rice area: Odisha 33.7 % (ASAG 2023 Table 2.4b); Bangladesh Aman is mostly rain-fed with supplemental irrigation (BBS/BADC ≈ 25 %); Mekong Delta rice ≈ 95 % irrigated (GSO); Central Luzon ≈ 65 % served by NIA/communal systems (PSA/NIA); north-coast Java ≈ 85 % technical irrigation (BPS). Rounded."
+  },
+  "assumptionFlags": "Values marked 'assumed' are not tabulated by FAO for that crop and are taken from the closest tabulated analogue; they are shown as such in the methodology panel.",
+  "soil": { "tawMmPerM": 140, "note": "Total available water ≈ 140 mm per m of root zone (FAO-56 Table 19: loam/silty-clay-loam θFC−θWP ≈ 0.11-0.20)" },
+  "crops": {
+    "rice": {
+      "label": "Rice (paddy)",
+      "stages": [0.2, 0.2, 0.4, 0.2],
+      "kc": [1.05, 1.2, 0.75],
+      "ky": [1.0, 1.09, 1.32, 0.5],
+      "kySeasonal": 1.1,
+      "zr": 0.5,
+      "p": 0.2,
+      "paddy": { "pondMaxMm": 100, "percolationMmDay": 3 },
+      "heat": { "tcrit": 35, "floweringFrac": 0.7, "windowDays": 7 },
+      "salinity": { "a": 3.0, "b": 12 },
+      "ndvi": { "min": 0.25, "max": 0.78, "peakFrac": 0.62, "end": 0.45 },
+      "floodSensitivity": [0.7, 0.8, 1.0, 0.5],
+      "src": "FAO-56 Kc 1.05/1.20/0.90-0.60, stages 30/30/60/30 d (Asia, monsoon); CROPWAT rice Ky; FAO-29 rice (paddy) 3.0 dS/m, 12 %/dS/m"
+    },
+    "maize": {
+      "label": "Maize (grain)",
+      "stages": [0.16, 0.28, 0.32, 0.24],
+      "kc": [0.3, 1.2, 0.35],
+      "ky": [0.4, 0.4, 1.3, 0.2],
+      "kySeasonal": 1.25,
+      "zr": 1.0,
+      "p": 0.55,
+      "heat": { "tcrit": 35, "floweringFrac": 0.5, "windowDays": 7 },
+      "salinity": { "a": 1.7, "b": 12 },
+      "ndvi": { "min": 0.2, "max": 0.8, "peakFrac": 0.55, "end": 0.35 },
+      "floodSensitivity": [1.2, 1.2, 1.2, 0.8],
+      "src": "FAO-56 Kc 0.30/1.20/0.35, stages 20/35/40/30 d; FAO-33 Ky vegetative 0.4, flowering 1.5, yield formation 0.5, ripening 0.2 (mid-season = flowering + yield formation ≈ 1.3); FAO-29 corn 1.7/12"
+    },
+    "sugarcane": {
+      "label": "Sugarcane",
+      "stages": [0.1, 0.17, 0.48, 0.25],
+      "kc": [0.4, 1.25, 0.75],
+      "ky": [0.75, 0.75, 0.5, 0.1],
+      "kySeasonal": 1.2,
+      "zr": 1.2,
+      "p": 0.65,
+      "heat": null,
+      "salinity": { "a": 1.7, "b": 5.9 },
+      "ndvi": { "min": 0.3, "max": 0.82, "peakFrac": 0.6, "end": 0.6 },
+      "floodSensitivity": [0.6, 0.5, 0.35, 0.3],
+      "src": "FAO-56 Kc 0.40/1.25/0.75 (stages scaled to a 12-month crop); FAO-33 Ky establishment 0.75, vegetative 0.75, yield formation 0.50, ripening 0.10; FAO-29 sugarcane 1.7/5.9"
+    },
+    "onion": {
+      "label": "Onion (dry)",
+      "stages": [0.1, 0.17, 0.46, 0.27],
+      "kc": [0.7, 1.05, 0.75],
+      "ky": [0.45, 0.45, 0.8, 0.3],
+      "kySeasonal": 1.1,
+      "zr": 0.4,
+      "p": 0.3,
+      "heat": null,
+      "salinity": { "a": 1.2, "b": 16 },
+      "ndvi": { "min": 0.2, "max": 0.65, "peakFrac": 0.6, "end": 0.35 },
+      "floodSensitivity": [1.2, 1.2, 1.2, 1.0],
+      "src": "FAO-56 Kc 0.7/1.05/0.75, stages 15/25/70/40 d; FAO-33 Ky establishment 0.45, vegetative 0.45, yield formation 0.8, ripening 0.3; FAO-29 onion 1.2/16"
+    },
+    "vegetables": {
+      "label": "Vegetables (tomato analogue)",
+      "stages": [0.22, 0.3, 0.3, 0.18],
+      "kc": [0.6, 1.15, 0.8],
+      "ky": [0.4, 0.4, 1.1, 0.4],
+      "kySeasonal": 1.05,
+      "zr": 0.6,
+      "p": 0.4,
+      "heat": { "tcrit": 32, "floweringFrac": 0.45, "windowDays": 10 },
+      "salinity": { "a": 2.5, "b": 9.9 },
+      "ndvi": { "min": 0.2, "max": 0.7, "peakFrac": 0.55, "end": 0.45 },
+      "floodSensitivity": [1.2, 1.2, 1.2, 1.2],
+      "assumed": "Mixed vegetables are parameterised with FAO's tomato values (FAO-56 Kc 0.6/1.15/0.80, stages 30/40/40/25 d; FAO-33 Ky vegetative 0.4, flowering 1.1, yield formation 0.8, ripening 0.4; FAO-29 tomato 2.5/9.9)",
+      "src": "FAO-56 / FAO-33 / FAO-29 tomato"
+    },
+    "jute": {
+      "label": "Jute (fibre)",
+      "stages": [0.15, 0.3, 0.4, 0.15],
+      "kc": [0.45, 1.1, 0.8],
+      "ky": [0.9, 0.9, 1.0, 0.5],
+      "kySeasonal": 1.0,
+      "zr": 0.8,
+      "p": 0.5,
+      "heat": null,
+      "salinity": { "a": 2.0, "b": 10 },
+      "ndvi": { "min": 0.25, "max": 0.8, "peakFrac": 0.7, "end": 0.7 },
+      "floodSensitivity": [1.0, 0.5, 0.2, 0.1],
+      "assumed": "Jute is not tabulated in FAO-56/33/29: Kc and Ky from the fibre-crop analogue (cotton/kenaf, seasonal Ky ≈ 0.85-1.0); jute tolerates late-season waterlogging once tall (BJRI). ECe threshold 2.0 dS/m as in the platform's crop tolerance table.",
+      "src": "assumed (fibre-crop analogue)"
+    },
+    "coconut": {
+      "label": "Coconut (nuts in shell)",
+      "perennial": true,
+      "stages": [0.25, 0.25, 0.25, 0.25],
+      "kc": [0.95, 1.0, 1.0],
+      "ky": [0.5, 0.5, 0.5, 0.5],
+      "kySeasonal": 0.5,
+      "zr": 1.5,
+      "p": 0.65,
+      "heat": null,
+      "salinity": { "a": 4.0, "b": 8 },
+      "ndvi": { "min": 0.62, "max": 0.78, "peakFrac": 0.5, "end": 0.7 },
+      "floodSensitivity": [0.15, 0.15, 0.15, 0.15],
+      "assumed": "Perennial palm: FAO-56 'palm trees' Kc 0.95/1.00/1.00. A year's drought mostly hits nut set 12-30 months later, so the current-year Ky is damped to 0.5 (assumed). Coconut is moderately salt tolerant (Maas 1984: MT) — threshold assumed 4 dS/m.",
+      "src": "FAO-56 palm trees; assumed Ky"
+    },
+    "mango": {
+      "label": "Mango",
+      "perennial": true,
+      "stages": [0.2, 0.25, 0.35, 0.2],
+      "kc": [0.6, 0.85, 0.75],
+      "ky": [0.4, 0.9, 0.9, 0.3],
+      "kySeasonal": 0.8,
+      "zr": 1.5,
+      "p": 0.5,
+      "heat": { "tcrit": 40, "floweringFrac": 0.15, "windowDays": 10 },
+      "salinity": { "a": 1.5, "b": 13 },
+      "ndvi": { "min": 0.55, "max": 0.75, "peakFrac": 0.5, "end": 0.7 },
+      "floodSensitivity": [0.2, 0.2, 0.2, 0.2],
+      "assumed": "Mango is not tabulated in FAO-56: Kc from the tropical-tree analogue (avocado 0.6/0.85/0.75); Ky assumed 0.8 (fruit trees 0.7-1.1, FAO-66); mango is salt sensitive (Maas 1984: S) — threshold assumed 1.5 dS/m.",
+      "src": "FAO-56 tree analogue; assumed Ky"
+    },
+    "wheat": {
+      "label": "Wheat",
+      "stages": [0.13, 0.22, 0.4, 0.25],
+      "kc": [0.4, 1.15, 0.3],
+      "ky": [0.2, 0.2, 0.6, 0.5],
+      "kySeasonal": 1.05,
+      "zr": 1.2,
+      "p": 0.55,
+      "heat": { "tcrit": 31, "floweringFrac": 0.55, "windowDays": 7 },
+      "salinity": { "a": 6.0, "b": 7.1 },
+      "ndvi": { "min": 0.2, "max": 0.8, "peakFrac": 0.55, "end": 0.3 },
+      "floodSensitivity": [1.0, 1.0, 1.0, 0.8],
+      "src": "FAO-56 Kc 0.4/1.15/0.25-0.4; FAO-33 Ky spring wheat; FAO-29 wheat 6.0/7.1"
+    },
+    "potato": {
+      "label": "Potato",
+      "stages": [0.2, 0.25, 0.35, 0.2],
+      "kc": [0.5, 1.15, 0.75],
+      "ky": [0.45, 0.45, 0.8, 0.2],
+      "kySeasonal": 1.1,
+      "zr": 0.5,
+      "p": 0.35,
+      "heat": null,
+      "salinity": { "a": 1.7, "b": 12 },
+      "ndvi": { "min": 0.2, "max": 0.8, "peakFrac": 0.55, "end": 0.35 },
+      "floodSensitivity": [1.2, 1.2, 1.2, 1.2],
+      "src": "FAO-56 potato; FAO-33 potato; FAO-29 potato 1.7/12"
+    }
+  },
+  "calendars": {
+    "_note": "Sowing/transplanting date (MM-DD) and season length in days. The model picks the season that contains today; otherwise the most recently harvested one (within 120 days); otherwise the next one.",
+    "BD": {
+      "rice": [{ "id": "aman", "name": "Aman", "sow": "07-01", "days": 145 }, { "id": "boro", "name": "Boro", "sow": "12-15", "days": 150 }, { "id": "aus", "name": "Aus", "sow": "04-01", "days": 110 }],
+      "jute": [{ "id": "kharif1", "name": "Kharif-1", "sow": "04-01", "days": 120 }],
+      "vegetables": [{ "id": "rabi", "name": "Rabi (winter)", "sow": "10-20", "days": 110 }, { "id": "kharif", "name": "Kharif", "sow": "06-01", "days": 100 }],
+      "coconut": [{ "id": "year", "name": "Calendar year", "sow": "01-01", "days": 365 }],
+      "wheat": [{ "id": "rabi", "name": "Rabi", "sow": "11-20", "days": 115 }],
+      "potato": [{ "id": "rabi", "name": "Rabi", "sow": "11-15", "days": 100 }],
+      "maize": [{ "id": "rabi", "name": "Rabi", "sow": "11-15", "days": 140 }]
+    },
+    "IN": {
+      "rice": [{ "id": "kharif", "name": "Kharif", "sow": "06-25", "days": 145 }, { "id": "rabi", "name": "Rabi", "sow": "01-01", "days": 125 }],
+      "jute": [{ "id": "kharif1", "name": "Pre-kharif", "sow": "04-01", "days": 120 }],
+      "vegetables": [{ "id": "rabi", "name": "Rabi (winter)", "sow": "10-20", "days": 110 }, { "id": "kharif", "name": "Kharif", "sow": "06-15", "days": 100 }],
+      "coconut": [{ "id": "year", "name": "Calendar year", "sow": "01-01", "days": 365 }],
+      "wheat": [{ "id": "rabi", "name": "Rabi", "sow": "11-20", "days": 120 }]
+    },
+    "VN": {
+      "rice": [{ "id": "winter_spring", "name": "Winter-Spring", "sow": "11-25", "days": 105 }, { "id": "summer_autumn", "name": "Summer-Autumn", "sow": "04-20", "days": 100 }, { "id": "autumn_winter", "name": "Autumn-Winter", "sow": "08-10", "days": 100 }],
+      "vegetables": [{ "id": "dry", "name": "Dry season", "sow": "11-15", "days": 90 }, { "id": "wet", "name": "Wet season", "sow": "07-01", "days": 90 }],
+      "coconut": [{ "id": "year", "name": "Calendar year", "sow": "01-01", "days": 365 }],
+      "sugarcane": [{ "id": "main", "name": "Main crop", "sow": "04-01", "days": 300 }]
+    },
+    "PH": {
+      "rice": [{ "id": "wet", "name": "Wet season", "sow": "06-20", "days": 120 }, { "id": "dry", "name": "Dry season", "sow": "12-01", "days": 120 }],
+      "sugarcane": [{ "id": "main", "name": "Crop year", "sow": "10-15", "days": 330 }],
+      "onion": [{ "id": "dry", "name": "Dry season", "sow": "11-20", "days": 130 }],
+      "maize": [{ "id": "wet", "name": "Wet season", "sow": "06-01", "days": 115 }, { "id": "dry", "name": "Dry season", "sow": "11-15", "days": 115 }],
+      "vegetables": [{ "id": "dry", "name": "Dry season", "sow": "11-01", "days": 100 }, { "id": "wet", "name": "Wet season", "sow": "06-15", "days": 90 }]
+    },
+    "ID": {
+      "rice": [{ "id": "mt1", "name": "MT1 (wet)", "sow": "11-15", "days": 115 }, { "id": "mt2", "name": "MT2 (gadu)", "sow": "04-01", "days": 115 }],
+      "mango": [{ "id": "main", "name": "Flowering → harvest", "sow": "07-15", "days": 150 }],
+      "vegetables": [{ "id": "dry", "name": "Dry season", "sow": "05-01", "days": 90 }, { "id": "wet", "name": "Wet season", "sow": "11-01", "days": 90 }]
+    },
+    "_default": {
+      "mango": [{ "id": "main", "name": "Flowering → harvest", "sow": "12-15", "days": 180 }],
+      "maize": [{ "id": "main", "name": "Main season", "sow": "06-01", "days": 120 }],
+      "sugarcane": [{ "id": "main", "name": "Crop year", "sow": "02-01", "days": 330 }],
+      "onion": [{ "id": "main", "name": "Dry season", "sow": "11-15", "days": 130 }],
+      "coconut": [{ "id": "year", "name": "Calendar year", "sow": "01-01", "days": 365 }],
+      "vegetables": [{ "id": "main", "name": "Main season", "sow": "10-15", "days": 100 }],
+      "jute": [{ "id": "main", "name": "Main season", "sow": "04-01", "days": 120 }],
+      "wheat": [{ "id": "main", "name": "Main season", "sow": "11-15", "days": 120 }],
+      "potato": [{ "id": "main", "name": "Main season", "sow": "11-15", "days": 100 }],
+      "rice": [{ "id": "main", "name": "Main season", "sow": "06-20", "days": 130 }]
+    }
+  },
+  "irrigatedShare": { "BD": 0.25, "IN": 0.34, "VN": 0.95, "PH": 0.65, "ID": 0.85 },
+  "irrigationReliability": {
+    "_note": "Share of a crop-water deficit an irrigation source typically meets (canal service is interrupted; tube-wells are farmer-controlled). Assumed, documented.",
+    "canal": 0.8, "tubewell": 0.95, "irrigated": 0.85, "rainfed": 0
+  }
+}

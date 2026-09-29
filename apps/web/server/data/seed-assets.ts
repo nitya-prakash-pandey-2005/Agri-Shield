@@ -8,6 +8,9 @@ import type { AssetType, CropType, Industry } from "@agri-shield/types";
 import type { DistrictRecord } from "./store";
 import type { SupplyNodeRecord } from "./store";
 import { between, intBetween, pick, round, type Rng } from "./prng";
+import fxSnapshot from "./real/fx-snapshot.json";
+import { AGRI, countryStats, landPoints, loanSize, productionCostUsdHa } from "./real";
+import { logNormal } from "./real/sampling";
 
 // ─── Record types (re-exported from store.ts) ─────────────────────────────
 
@@ -141,7 +144,17 @@ export const ENTERPRISE_USERS = [
 
 // ─── Assets ───────────────────────────────────────────────────────────────
 
-const HA_PRICE_USD: Partial<Record<CropType, number>> = { rice: 1150, jute: 950, sugarcane: 2600, coconut: 3100, vegetables: 2400, maize: 900, onion: 2200, mango: 3600, wheat: 850 };
+/**
+ * Gross output value per ha for non-rice crops ≈ cost of cultivation × 1.6 (typical smallholder
+ * value/cost ratio); rice uses FAOSTAT paddy yield × national farm-gate price (real/agri-reference.json).
+ */
+function grossValueUsdHa(country: string, crop: CropType): number {
+  if (crop === "rice") {
+    const s = countryStats(country);
+    return s.paddyYieldTHa * s.paddyFarmgateUsdT;
+  }
+  return productionCostUsdHa(country, crop) * 1.6;
+}
 
 const VILLAGES: Record<string, string[]> = {
   BD: ["Char Kukri-Mukri", "Gabura", "Padmapukur", "Dacope", "Koyra", "Shyamnagar", "Kalapara", "Rangabali", "Morrelganj", "Sarankhola", "Mongla", "Bhola Sadar"],
@@ -151,7 +164,22 @@ const VILLAGES: Record<string, string[]> = {
   ID: ["Sayung", "Bedono", "Wedung", "Karangtengah", "Tirto", "Wonokerto", "Cantigi", "Losarang"],
 };
 
-const jitter = (rng: Rng, v: number, d: number) => round(v + between(rng, -d, d), 5);
+/**
+ * Deterministic walk over each district's land-validated points (real/land-points.json: inside the
+ * real admin boundary, on dry land per SRTM-based DEM elevation + JRC surface-water occurrence).
+ * Stride 7 is coprime with the 144-point pools, so points repeat only after the whole pool is used.
+ */
+function landWalker(rng: Rng) {
+  const cursor = new Map<string, number>();
+  return (d: DistrictRecord): [number, number] => {
+    const pts = landPoints(d.id);
+    if (!pts.length) return [round(d.lat + between(rng, -0.03, 0.03), 5), round(d.lon + between(rng, -0.03, 0.03), 5)];
+    const c = cursor.get(d.id) ?? intBetween(rng, 0, pts.length - 1);
+    cursor.set(d.id, c + 7);
+    const p = pts[c % pts.length]!;
+    return [p[0], p[1]];
+  };
+}
 
 export function seedAssets(rng: Rng, districts: DistrictRecord[], nodes: SupplyNodeRecord[], now: Date): AssetRecord[] {
   const assets: AssetRecord[] = [];
@@ -174,31 +202,44 @@ export function seedAssets(rng: Rng, districts: DistrictRecord[], nodes: SupplyN
     ...over,
   });
   const inCountry = (codes: string[]) => districts.filter((d) => codes.includes(d.country));
+  const at = landWalker(rng);
+  const PREM = AGRI.insurancePremiumPct;
 
-  // Delta Mutual — 140 insured paddy/jute plots (area-yield index + indemnity policies)
+  // Delta Mutual — 140 insured units. Index insurance in South Asia is written as group
+  // policies through aggregators (MFIs, co-operatives, input dealers): one insured unit =
+  // one village cluster of smallholders sharing a contract, index and trigger.
   for (const [i, d] of Array.from({ length: 140 }, (_, i) => [i, pick(rng, inCountry(["BD", "IN"]))] as const)) {
     const crop = pick(rng, d.primaryCrops.filter((c) => c !== "coconut").concat("rice")) as CropType;
-    const areaHa = round(between(rng, 0.4, 4.5), 1);
+    // Plot size ~ log-normal around the census mean farm size (BD ≈ 0.5 ha, Odisha ≈ 0.95 ha)
+    const avg = countryStats(d.country).avgFarmHa;
+    const plotHa = logNormal(rng, avg * 0.9, 0.5, 0.1, avg * 5);
+    const farmersCovered = Math.round(logNormal(rng, 260, 0.6, 40, 1200));
+    const areaHa = round(plotHa * farmersCovered, 1);
+    const channel = pick(rng, ["MFI group policy", "MFI group policy", "Co-operative group policy", "Input-dealer bundle", "Loan-linked (bank)"]);
     const product = rng() > 0.45 ? "Weather-index (rainfall)" : rng() > 0.4 ? "Area-yield index" : "Indemnity (MPCI)";
+    const [lat, lon] = at(d);
+    // Sum insured = cost of cultivation (PMFBY-style scale of finance); premium rate rises with flood exposure
+    const [lo, hi] = product.startsWith("Weather") ? PREM.weatherIndex : product.startsWith("Area") ? PREM.areaYield : PREM.indemnity;
+    const premiumRatePct = round(lo + (hi - lo) * Math.min(1, Math.max(0, (d.floodExposure - 0.5) / 0.4)) + between(rng, -0.3, 0.3), 1);
     assets.push(
       base({
         workspaceId: "org-ins-deltamutual",
         type: "insured_plot",
-        name: `${pick(rng, VILLAGES[d.country]!)} plot ${String(i + 1).padStart(3, "0")}`,
+        name: `${pick(rng, VILLAGES[d.country]!)} unit ${String(i + 1).padStart(3, "0")}`,
         externalRef: `DMA-${d.country}-${2026}${String(10000 + i * 7).padStart(5, "0")}`,
-        lat: jitter(rng, d.lat, 0.07),
-        lon: jitter(rng, d.lon, 0.07),
+        lat,
+        lon,
         districtId: d.id,
         country: d.countryName,
         areaHa,
         crop,
-        valueUsd: Math.round(areaHa * (HA_PRICE_USD[crop] ?? 1000) * between(rng, 0.7, 1.0)),
+        valueUsd: Math.max(400, Math.round(areaHa * productionCostUsdHa(d.country, crop) * between(rng, 0.9, 1.05))),
         tags: [crop, product.startsWith("Weather") ? "parametric" : "indemnity", d.salinityExposure > 0.6 ? "coastal" : "inland"],
-        meta: { product, season: "Aman 2026", premiumUsd: 0, deductiblePct: product.startsWith("Indemnity") ? 20 : 0, farmerName: null },
+        meta: { product, season: d.country === "IN" ? "Kharif 2026" : "Aman 2026", premiumUsd: 0, premiumRatePct, sumInsuredBasis: "cost of cultivation", deductiblePct: product.startsWith("Indemnity") ? 20 : 0, farmersCovered, avgPlotHa: round(plotHa, 2), channel, farmerName: null },
       })
     );
     const last = assets[assets.length - 1]!;
-    last.meta.premiumUsd = Math.round(last.valueUsd * (product.startsWith("Weather") ? 0.045 : 0.06));
+    last.meta.premiumUsd = Math.max(1, Math.round((last.valueUsd * premiumRatePct) / 100));
   }
 
   // Mekong Rural Credit Bank — 160 agricultural loans (VN + PH)
@@ -206,26 +247,30 @@ export function seedAssets(rng: Rng, districts: DistrictRecord[], nodes: SupplyN
   for (let i = 0; i < 160; i++) {
     const d = pick(rng, inCountry(["VN", "PH"]));
     const crop = pick(rng, d.primaryCrops) as CropType;
-    const principal = Math.round(between(rng, 800, 18000) / 50) * 50;
+    // Loan size ~ log-normal around typical VN (≈ VND 100 M) / PH (≈ PHP 100k) smallholder production loans
+    const size = loanSize(d.country);
+    const principal = Math.round(logNormal(rng, size.median, 0.7, size.min, size.max) / 50) * 50;
     const outstanding = Math.round(principal * between(rng, 0.35, 1));
+    const [rLo, rHi] = countryStats(d.country).loanRatePct;
+    const [lat, lon] = at(d);
     assets.push(
       base({
         workspaceId: "org-bank-mekong",
         type: "loan",
         name: `${crop === "coconut" ? "Coconut orchard" : crop === "sugarcane" ? "Sugarcane" : crop === "rice" ? "Rice" : "Horticulture"} loan · ${pick(rng, VILLAGES[d.country]!)}`,
         externalRef: `MRCB-${d.country}-${String(700000 + i * 13)}`,
-        lat: jitter(rng, d.lat, 0.08),
-        lon: jitter(rng, d.lon, 0.08),
+        lat,
+        lon,
         districtId: d.id,
         country: d.countryName,
-        areaHa: round(between(rng, 0.5, 6), 1),
+        areaHa: round(logNormal(rng, countryStats(d.country).avgFarmHa, 0.5, 0.2, 8), 2),
         crop,
         valueUsd: outstanding,
         tags: [crop, principal > 10000 ? "sme" : "smallholder", pick(rng, ["crop-loan", "crop-loan", "equipment", "working-capital"])],
         meta: {
           principalUsd: principal,
           tenorMonths: pick(rng, tenors),
-          interestRatePct: round(between(rng, 6.5, 11.5), 1),
+          interestRatePct: round(between(rng, rLo, rHi), 1),
           daysPastDue: rng() > 0.9 ? intBetween(rng, 5, 95) : 0,
           internalRating: pick(rng, ["A", "BBB", "BBB", "BB", "BB", "B"]),
           collateral: pick(rng, ["Land-use certificate", "Group guarantee", "Machinery", "None"]),
@@ -254,23 +299,26 @@ export function seedAssets(rng: Rng, districts: DistrictRecord[], nodes: SupplyN
     );
   }
 
-  // Delta Resilience Foundation — 48 at-risk coastal communities (anticipatory action)
+  // Delta Resilience Foundation — 48 at-risk coastal communities (anticipatory action).
+  // Cash envelope = WFP/BRAC anticipatory transfer (BDT 5,000/household) at the committed FX snapshot.
+  const CASH_PER_HH_USD = Math.round(AGRI.anticipatoryCash.bdtPerHousehold / (fxSnapshot.rates as Record<string, number>).BDT!);
   for (let i = 0; i < 48; i++) {
     const d = pick(rng, inCountry(["BD"]));
     const households = intBetween(rng, 180, 2400);
+    const [lat, lon] = at(d);
     assets.push(
       base({
         workspaceId: "org-ngo-brac",
         type: "community",
         name: `${pick(rng, VILLAGES.BD!)} ${pick(rng, ["Union", "Ward", "Char", "Para"])} ${i + 1}`,
         externalRef: `DRF-COM-${String(i + 1).padStart(3, "0")}`,
-        lat: jitter(rng, d.lat, 0.09),
-        lon: jitter(rng, d.lon, 0.09),
+        lat,
+        lon,
         districtId: d.id,
         country: d.countryName,
-        valueUsd: households * 85, // pre-arranged cash transfer envelope (USD 85/household)
+        valueUsd: households * CASH_PER_HH_USD, // pre-arranged anticipatory cash envelope (BDT 5,000/household)
         tags: [d.salinityExposure > 0.7 ? "salinity-hotspot" : "flood-plain", households > 1200 ? "large" : "small"],
-        meta: { households, population: Math.round(households * 4.3), cashPerHouseholdUsd: 85, femaleHeadedPct: intBetween(rng, 12, 34), cycloneShelterKm: round(between(rng, 0.6, 7.5), 1) },
+        meta: { households, population: Math.round(households * countryStats("BD").householdSize), cashPerHouseholdUsd: CASH_PER_HH_USD, femaleHeadedPct: intBetween(rng, 12, 34), cycloneShelterKm: round(between(rng, 0.6, 7.5), 1) },
       })
     );
   }
@@ -279,20 +327,22 @@ export function seedAssets(rng: Rng, districts: DistrictRecord[], nodes: SupplyN
   for (let i = 0; i < 90; i++) {
     const d = pick(rng, inCountry(["IN"]));
     const crop = pick(rng, d.primaryCrops) as CropType;
-    const areaHa = round(between(rng, 0.3, 2.8), 1);
+    // Odisha mean operational holding 0.95 ha (Agriculture Census 2015-16)
+    const areaHa = round(logNormal(rng, countryStats("IN").avgFarmHa * 0.9, 0.5, 0.15, 5), 2);
+    const [lat, lon] = at(d);
     assets.push(
       base({
         workspaceId: "org-coop-odisha",
         type: "farm",
         name: `Member farm ${String(i + 1).padStart(3, "0")} · ${pick(rng, VILLAGES.IN!)}`,
         externalRef: `MFPC-${String(2000 + i)}`,
-        lat: jitter(rng, d.lat, 0.07),
-        lon: jitter(rng, d.lon, 0.07),
+        lat,
+        lon,
         districtId: d.id,
         country: d.countryName,
         areaHa,
         crop,
-        valueUsd: Math.round(areaHa * (HA_PRICE_USD[crop] ?? 1000)),
+        valueUsd: Math.max(40, Math.round(areaHa * grossValueUsdHa(d.country, crop))),
         tags: [crop, rng() > 0.7 ? "organic" : "conventional"],
         meta: { memberSince: 2016 + intBetween(rng, 0, 9), irrigation: pick(rng, ["canal", "tubewell", "rainfed", "rainfed"]) },
       })
@@ -328,7 +378,7 @@ export function seedNotifications(now: Date): NotificationRecord[] {
   const d = (h: number) => new Date(now.getTime() - h * 3_600_000);
   const n = (id: number, ws: string, kind: NotificationRecord["kind"], severity: NotificationRecord["severity"], title: string, body: string, href: string | null, h: number): NotificationRecord => ({ id: `ntf_${id}`, workspaceId: ws, userId: null, kind, title, body, href, severity, createdAt: d(h), readBy: [] });
   return [
-    n(1, "org-ins-deltamutual", "system", "success", "Weekly portfolio re-score complete", "140 insured plots re-assessed against the latest forecast and satellite data.", "/app/portfolio", 3),
+    n(1, "org-ins-deltamutual", "system", "success", "Weekly portfolio re-score complete", "140 insured units (≈44,500 farmers) re-assessed against the latest forecast and satellite data.", "/app/portfolio", 3),
     n(2, "org-ins-deltamutual", "rule", "warning", "Parametric trigger watch fired", "7 plots in Satkhira are within 25 mm of the rainfall payout trigger.", "/app/alerts", 30),
     n(3, "org-bank-mekong", "rule", "warning", "Salinity stress on rice borrowers", "11 rice loans in Bến Tre and Sóc Trăng are forecast above 3 dS/m.", "/app/alerts", 120),
     n(4, "org-bank-mekong", "report", "info", "Q3 physical-risk disclosure ready", "Your TCFD/ISSB-aligned physical climate risk report was generated.", "/app/reports", 50),

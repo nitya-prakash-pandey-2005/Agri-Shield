@@ -1,0 +1,112 @@
+{
+  "note": "Curated order-of-magnitude reference values for the demo seed. Figures are rounded from the cited public statistics; they calibrate synthetic farms/loans/policies, they are not a statistical product. Author: Nitya Prakash Pandey.",
+  "retrieved": "2026-09-29",
+  "countries": {
+    "BD": {
+      "avgFarmHa": 0.5,
+      "avgFarmHaSource": "BBS Agriculture Census 2019 (Bangladesh Bureau of Statistics): mean operated area per farm holding ≈ 0.5 ha",
+      "householdSize": 4.0,
+      "householdSizeSource": "BBS Population & Housing Census 2022: 3.98 persons/household",
+      "farmHouseholdShare": 0.47,
+      "farmHouseholdShareSource": "BBS Agriculture Census 2019: ≈16.9 M farm holdings of ≈35.5 M households",
+      "paddyYieldTHa": 4.9,
+      "paddyFarmgateUsdT": 290,
+      "priceSource": "FAOSTAT 2023 paddy yield; DAM Bangladesh Aman procurement/market paddy ≈ BDT 33-36/kg",
+      "loanRatePct": [9, 12],
+      "loanRateSource": "Bangladesh Bank agricultural & rural credit policy FY2025-26 (SMART-linked cap ≈ 9-12 %)"
+    },
+    "VN": {
+      "avgFarmHa": 1.2,
+      "avgFarmHaSource": "GSO Rural, Agricultural & Fishery Census 2016 / IPSARD: Mekong Delta rice households farm ≈ 1-1.3 ha (national ≈ 0.5 ha)",
+      "householdSize": 3.5,
+      "householdSizeSource": "GSO Population & Housing Census 2019: 3.5 persons/household (Mekong Delta)",
+      "farmHouseholdShare": 0.42,
+      "farmHouseholdShareSource": "GSO 2020 mid-term agricultural census: ≈ 40-45 % of Mekong Delta households farm",
+      "paddyYieldTHa": 6.1,
+      "paddyFarmgateUsdT": 290,
+      "priceSource": "FAOSTAT 2023 paddy yield; Mekong IR50404/OM5451 fresh paddy ≈ VND 6,500-8,000/kg (2024-26)",
+      "loanRatePct": [6, 9],
+      "loanRateSource": "State Bank of Viet Nam priority-sector caps + Agribank/VBARD agricultural lending 2024-26 (6-9 %)"
+    },
+    "PH": {
+      "avgFarmHa": 1.5,
+      "avgFarmHaSource": "PSA 2012 Census of Agriculture and Fisheries: national mean farm 1.29 ha; PhilRice RBFHS Central Luzon rice farms ≈ 1.5 ha",
+      "householdSize": 4.1,
+      "householdSizeSource": "PSA 2020 Census of Population and Housing: 4.1 persons/household",
+      "farmHouseholdShare": 0.15,
+      "farmHouseholdShareSource": "PSA: ≈ 5.6 M farms nationally (≈ 24 % of households); Central Luzon is more urbanised (≈ 15 %)",
+      "paddyYieldTHa": 4.2,
+      "paddyFarmgateUsdT": 340,
+      "priceSource": "FAOSTAT 2023 paddy yield; PSA palay farmgate ≈ PHP 19-23/kg (2024-26)",
+      "loanRatePct": [8, 12],
+      "loanRateSource": "Rural/thrift bank agri-loan rates 8-12 % (ACPC & BSP reports; subsidised ANYO/SURE programmes lower)"
+    },
+    "IN": {
+      "avgFarmHa": 0.95,
+      "avgFarmHaSource": "Agriculture Census 2015-16 (MoA&FW): Odisha average operational holding 0.95 ha",
+      "householdSize": 4.4,
+      "householdSizeSource": "Census of India 2011: Odisha ≈ 4.4 persons/household",
+      "farmHouseholdShare": 0.52,
+      "farmHouseholdShareSource": "Agriculture Census 2015-16: ≈ 4.9 M operational holdings in Odisha vs ≈ 9.6 M households",
+      "paddyYieldTHa": 4.3,
+      "paddyFarmgateUsdT": 247,
+      "priceSource": "FAOSTAT 2023 paddy yield; GoI MSP common paddy 2025-26 INR 2,369/quintal",
+      "loanRatePct": [7, 9],
+      "loanRateSource": "Kisan Credit Card crop loans 7 % (4 % with prompt-repayment subvention); term loans ≈ 9 %"
+    },
+    "ID": {
+      "avgFarmHa": 0.4,
+      "avgFarmHaSource": "BPS Sensus Pertanian 2023: most Java farm households are 'petani gurem' (< 0.5 ha); Java mean ≈ 0.3-0.5 ha",
+      "householdSize": 3.6,
+      "householdSizeSource": "BPS 2020 Population Census / SUPAS: ≈ 3.6 persons/household (Central Java)",
+      "farmHouseholdShare": 0.3,
+      "farmHouseholdShareSource": "BPS ST2023: 29.3 M farm households nationally (≈ 38 %); lower on urbanised north-coast Java",
+      "paddyYieldTHa": 5.3,
+      "paddyFarmgateUsdT": 360,
+      "priceSource": "FAOSTAT 2023 paddy yield; HPP gabah kering panen IDR 6,500/kg (Bapanas 2025)",
+      "loanRatePct": [6, 12],
+      "loanRateSource": "KUR (Kredit Usaha Rakyat) micro 6 %; commercial agri loans ≈ 10-12 %"
+    }
+  },
+  "districtRuralAdjust": {
+    "_note": "Share of the farm-household rate that applies to districts dominated by a city (population figure includes the urban core).",
+    "bd-khulna": 0.8,
+    "bd-sylhet": 0.9,
+    "vn-cantho": 0.55,
+    "ph-bulacan": 0.5,
+    "ph-pampanga": 0.8,
+    "id-semarang": 0.12,
+    "id-pekalongan": 0.8
+  },
+  "productionCostUsdHa": {
+    "_note": "Cost of cultivation per hectare per season — basis for indemnity sums insured (PMFBY uses the district 'scale of finance', which approximates cost of cultivation). Converted at 2026 FX.",
+    "_sources": "BD: DAE/BBS cost of production (Aman ≈ BDT 95-110k/ha); VN: IPSARD/Sub-DoA Mekong (≈ VND 26-30 M/ha per crop); PH: PSA Production Costs and Returns of Palay 2023 (≈ PHP 65-75k/ha); IN: Odisha SLTC scale of finance for paddy 2025-26 (≈ INR 60-66k/ha), CACP cost A2+FL; ID: BPS Survei Ongkos Usaha Tani (≈ IDR 16-19 M/ha)",
+    "BD": { "rice": 850, "jute": 800, "vegetables": 1500, "coconut": 700 },
+    "VN": { "rice": 1100, "coconut": 900, "sugarcane": 1600, "vegetables": 1600 },
+    "PH": { "rice": 1150, "sugarcane": 1700, "onion": 2500, "maize": 800, "vegetables": 1600 },
+    "IN": { "rice": 680, "jute": 650, "coconut": 700, "vegetables": 1300, "wheat": 600 },
+    "ID": { "rice": 1000, "mango": 1200, "vegetables": 1500 }
+  },
+  "insurancePremiumPct": {
+    "_source": "World Bank / GIIF index-insurance reviews and PMFBY actuarial rates: weather-index 3-8 % of sum insured; area-yield 4-7 %; indemnity/MPCI 6-10 %",
+    "weatherIndex": [3, 8],
+    "areaYield": [4, 7],
+    "indemnity": [6, 10]
+  },
+  "loanSizeUsd": {
+    "_source": "VN: Agribank/VBARD household agri loans commonly VND 50-500 M (median ≈ VND 100 M); PH: rural-bank/Landbank production loans PHP 25k-600k (median ≈ PHP 100k)",
+    "VN": { "median": 4000, "min": 1200, "max": 25000 },
+    "PH": { "median": 1600, "min": 400, "max": 10000 }
+  },
+  "anticipatoryCash": {
+    "_source": "WFP/BRAC Bangladesh anticipatory cash for monsoon floods & Cyclone Remal (2020-2024): BDT 4,500-5,000 per household",
+    "bdtPerHousehold": 5000
+  },
+  "floodLossModel": {
+    "_note": "Loss estimate used for historical floods and archived alerts (see real/README.md).",
+    "floodedShare": "clamp(0.005 + 0.35·(1 − e^(−depth/0.7))·(0.4 + 0.6·min(1, days/14)), 0.002, 0.5) of the district's vulnerable area",
+    "damageRatio": "clamp(0.2 + 0.6·(1 − e^(−depth/0.8)) + 0.012·days, 0.1, 0.95)",
+    "cropValuePerHa": "paddyYieldTHa × paddyFarmgateUsdT",
+    "seasonFactor": "1.0 when the event falls in the main wet-season crop window, 0.5 otherwise"
+  }
+}

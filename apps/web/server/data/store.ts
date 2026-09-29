@@ -27,7 +27,29 @@ import type {
   UserRole,
 } from "@agri-shield/types";
 import { COUNTRIES, DISTRICTS, countryByCode, type DistrictDef } from "./geography";
-import { between, blobPolygon, fieldPolygon, intBetween, makeId, mulberry32, pick, round } from "./prng";
+import { between, blobPolygon, fieldPolygon, intBetween, makeId, mulberry32, pick, round, type Rng } from "./prng";
+import {
+  countryStats,
+  cyclonesFor,
+  districtRing,
+  drySpells,
+  facilityByName,
+  farmHouseholds,
+  floodEvents,
+  floodLoss,
+  floodClimatology,
+  floodThresholds,
+  landPoints,
+  landSites,
+  monthlyPrices,
+  priceAt,
+  salinityDriver,
+  salinitySeasons,
+  trailingMean,
+  type LandSite,
+} from "./real";
+import { logNormal } from "./real/sampling";
+import { scoreSalinity } from "../risk/scoring";
 import {
   ENTERPRISE_ORGS,
   ENTERPRISE_USERS,
@@ -106,7 +128,22 @@ export interface DistrictRecord extends DistrictDef {
   /** Which engine produced the current risk numbers (ML model version or web formula). */
   riskModel?: string;
   lastUpdated: Date;
-  historicalFloods: { year: number; month: string; areaHa: number; lossUsd: number; farmsAffected: number }[];
+  /**
+   * Worst real flood episode per year (GloFAS/ERA5-derived, see server/data/real/README.md).
+   * The optional fields are additive provenance for UIs that want the event detail.
+   */
+  historicalFloods: {
+    year: number;
+    month: string;
+    areaHa: number;
+    lossUsd: number;
+    farmsAffected: number;
+    startDate?: string;
+    durationDays?: number;
+    peakDischargeM3s?: number;
+    depthM?: number;
+    source?: string;
+  }[];
 }
 
 export interface FarmerProfileRecord {
@@ -378,6 +415,57 @@ const CROP_DAYS: Partial<Record<CropType, number>> = {
   rice: 120, jute: 120, sugarcane: 330, coconut: 365, vegetables: 75, maize: 110, onion: 120, mango: 365, wheat: 125,
 };
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const utc = (iso: string) => new Date(`${iso}T00:00:00Z`);
+const monthOf = (iso: string) => Number(iso.slice(5, 7));
+
+/** Worst real flood episode per calendar year for a district (by flooded area). */
+function historicalFloodsFor(d: DistrictDef, vulnerableAreaHa: number): DistrictRecord["historicalFloods"] {
+  const byYear = new Map<number, DistrictRecord["historicalFloods"][number]>();
+  for (const e of floodEvents(d.id)) {
+    const loss = floodLoss({ depthM: e.depthM, durationDays: e.durationDays, vulnerableAreaHa, country: d.country, month: monthOf(e.peakDate) });
+    const year = Number(e.start.slice(0, 4));
+    const prev = byYear.get(year);
+    if (!prev || loss.floodedHa > prev.areaHa)
+      byYear.set(year, {
+        year,
+        month: MONTHS[monthOf(e.peakDate) - 1]!,
+        areaHa: loss.floodedHa,
+        lossUsd: loss.lossUsd,
+        farmsAffected: loss.farmsAffected,
+        startDate: e.start,
+        durationDays: e.durationDays,
+        peakDischargeM3s: e.peakDischargeM3s,
+        depthM: e.depthM,
+        source: "GloFAS v4 + ERA5 (Open-Meteo)",
+      });
+  }
+  return [...byYear.values()].sort((a, b) => a.year - b.year);
+}
+
+/** Deterministic, non-repeating walk over a district's validated farm sites. */
+function sitePicker(rng: Rng) {
+  const cursor = new Map<string, number>();
+  const used = new Set<string>();
+  const key = (s: LandSite) => `${s.home[0]},${s.home[1]}`;
+  const take = (districtId: string): LandSite | null => {
+    const sites = landSites(districtId);
+    if (!sites.length) return null;
+    let c = cursor.get(districtId) ?? intBetween(rng, 0, sites.length - 1);
+    for (let k = 0; k < sites.length; k++, c += 5) {
+      // stride 5 is coprime with the 24-site pool → visits every site once
+      const s = sites[c % sites.length]!;
+      if (!used.has(key(s))) {
+        cursor.set(districtId, c + 5);
+        used.add(key(s));
+        return s;
+      }
+    }
+    return sites[c % sites.length]!;
+  };
+  return Object.assign(take, { reserve: (s: LandSite) => used.add(key(s)) });
+}
+
 // ─── Seeder ───────────────────────────────────────────────────────────────
 
 function seed(): Store {
@@ -429,31 +517,43 @@ function seed(): Store {
     o.trialEndsAt = null;
   }
 
-  // Districts
-  const months = ["Jun", "Jul", "Aug", "Sep", "Oct"];
+  // Districts — farm counts from census household statistics × farm-household share,
+  // farmland = farms × national/regional mean farm size (real/agri-reference.json).
   const districts: DistrictRecord[] = DISTRICTS.map((d) => {
     const c = countryByCode(d.country);
-    const floodRisk = round(Math.min(97, d.floodExposure * 85 + between(rng, -8, 12)), 0);
-    const salinityRisk = round(Math.min(96, d.salinityExposure * 88 + between(rng, -6, 8)), 0);
-    const p72 = Math.min(0.97, floodRisk / 100 + between(rng, 0.02, 0.08));
-    const ec = round(0.8 + d.salinityExposure * between(rng, 6, 9), 1);
-    const totalFarms = Math.round((d.population / 1000) * between(rng, 55, 95));
+    // Baseline = climatology for this calendar month from the real 2019-2026 flood
+    // record (replaced by live model output as soon as the forecast feeds respond).
+    const month = now.getMonth() + 1;
+    // Draws kept only so the PRNG sequence (and all downstream seeded data) is unchanged
+    for (const [lo, hi] of [[-8, 12], [-6, 8], [6, 9], [0.7, 0.85], [0.86, 0.95], [1.1, 1.5]] as const) between(rng, lo, hi);
+    const p72 = Math.min(0.95, floodClimatology(d.id, month, 3));
+    const p48 = Math.min(p72, floodClimatology(d.id, month, 2));
+    const p24 = Math.min(p48, floodClimatology(d.id, month, 1));
+    const floodRisk = Math.round(p72 * 100);
+    const sal = scoreSalinity({ exposure: d.salinityExposure, month, rain30dMm: 150, seaLevelM: null, latitude: d.lat });
+    const salinityRisk = sal.score;
+    const ec = round(sal.ecCurrent, 1);
+    const totalFarms = farmHouseholds(d.id, d.country, d.population);
+    const monitoredAreaHa = Math.round(totalFarms * countryStats(d.country).avgFarmHa);
+    // Low-lying / tidal share of farmland, from the district's exposure priors
+    const vulnerableAreaHa = Math.round(monitoredAreaHa * Math.min(0.85, Math.max(0.3, 0.25 + 0.6 * Math.max(d.floodExposure, d.salinityExposure * 0.9))));
     return {
       ...d,
       countryName: c.name,
       basin: c.basin,
       orgId: `org-gov-${d.country.toLowerCase()}`,
-      geometry: { type: "Polygon" as const, coordinates: blobPolygon(rng, d.lat, d.lon, 0.22, 12) },
-      vulnerableAreaHa: Math.round(totalFarms * between(rng, 0.4, 0.9)),
+      // Real admin boundary (geoBoundaries, simplified — real/district-boundaries.json); synthetic blob only as a fallback
+      geometry: { type: "Polygon" as const, coordinates: ((r) => (r ? [r] : blobPolygon(rng, d.lat, d.lon, 0.22, 12)))(districtRing(d.id)) },
+      vulnerableAreaHa,
       totalFarms,
-      monitoredAreaHa: Math.round(totalFarms * between(rng, 0.9, 1.6)),
+      monitoredAreaHa,
       floodRisk,
       salinityRisk,
-      floodProb24h: round(p72 * between(rng, 0.7, 0.85), 2),
-      floodProb48h: round(p72 * between(rng, 0.86, 0.95), 2),
+      floodProb24h: round(p24, 2),
+      floodProb48h: round(p48, 2),
       floodProb72h: round(p72, 2),
       ecCurrent: ec,
-      ecPredicted30d: round(ec * between(rng, 1.1, 1.5), 1),
+      ecPredicted30d: round(sal.ecPredicted30d, 1),
       riskLevel: riskLevelFromScore(Math.max(floodRisk, salinityRisk * 0.9)),
       rainfall72hMm: round(d.floodExposure * between(rng, 40, 160), 1),
       riverDischargeM3s: null,
@@ -461,16 +561,7 @@ function seed(): Store {
       seaLevelAnomalyM: null,
       liveSource: "seed" as const,
       lastUpdated: now,
-      historicalFloods: Array.from({ length: 6 }, (_, i) => {
-        const areaHa = Math.round(d.floodExposure * between(rng, 2000, 42000));
-        return {
-          year: 2020 + i,
-          month: pick(rng, months),
-          areaHa,
-          lossUsd: Math.round(areaHa * between(rng, 380, 900)),
-          farmsAffected: Math.round(areaHa / between(rng, 0.8, 1.6)),
-        };
-      }),
+      historicalFloods: historicalFloodsFor(d, vulnerableAreaHa),
     };
   });
 
@@ -524,23 +615,34 @@ function seed(): Store {
   const cropSoil: SoilType[] = ["clay", "loam", "silt", "clay", "sandy"];
   const irrigation: IrrigationType[] = ["rainfed", "canal", "flood_irrigation", "drip", "sprinkler"];
 
-  const makeFarmer = (idx: number, district: DistrictRecord, userId: string, overrideName?: string) => {
+  // Every homestead and plot comes from the land-validated pool (real/land-points.json):
+  // inside the real admin boundary, on dry land (SRTM DEM elevation, JRC surface-water mask).
+  const nextSite = sitePicker(rng);
+  const makeFarmer = (idx: number, district: DistrictRecord, userId: string, overrideName?: string, site?: LandSite) => {
     const c = district.country;
     const name = overrideName ?? `${pick(rng, FIRST_NAMES[c]!)} ${pick(rng, LAST_NAMES[c]!)}`;
-    const lat = district.lat + between(rng, -0.12, 0.12);
-    const lon = district.lon + between(rng, -0.12, 0.12);
+    const s = site ?? nextSite(district.id);
+    const lat = s ? s.home[0] : district.lat + between(rng, -0.05, 0.05);
+    const lon = s ? s.home[1] : district.lon + between(rng, -0.05, 0.05);
     const nFields = idx === 0 ? 2 : intBetween(rng, 2, 5);
     const crops = Array.from(new Set(district.primaryCrops.concat(rng() > 0.6 ? ["vegetables"] : []))) as CropType[];
     const farmerId = `farmer-${idx.toString().padStart(3, "0")}`;
+    // Farm size ~ log-normal around the country's census mean farm size, split over its plots
+    const avgFarm = countryStats(c).avgFarmHa;
+    const farmHa = logNormal(rng, avgFarm * 0.85, 0.55, Math.max(0.12, avgFarm * 0.3), avgFarm * 5);
+    const weights = Array.from({ length: nFields }, () => 0.5 + rng());
+    const wSum = weights.reduce((a, b) => a + b, 0);
     let total = 0;
     for (let f = 0; f < nFields; f++) {
-      const areaHa = idx === 0 ? [2.1, 1.4][f]! : round(between(rng, 0.4, 3.2), 1);
+      // Demo persona Ratan Das keeps his scripted 2.1 ha + 1.4 ha (a larger-than-average Barisal farm)
+      const areaHa = idx === 0 ? [2.1, 1.4][f]! : Math.max(0.04, round((farmHa * weights[f]!) / wSum, 2));
       total += areaHa;
       const crop = idx === 0 ? (["rice", "jute"] as CropType[])[f]! : pick(rng, crops);
       const cycle = CROP_DAYS[crop] ?? 120;
       const planted = new Date(now.getTime() - intBetween(rng, 20, Math.min(cycle - 10, 160)) * DAY);
-      const flat = lat + between(rng, -0.01, 0.01);
-      const flon = lon + between(rng, -0.01, 0.01);
+      const plot = s?.plots[f % s.plots.length];
+      const flat = plot ? plot[0] : lat + between(rng, -0.01, 0.01);
+      const flon = plot ? plot[1] : lon + between(rng, -0.01, 0.01);
       const fr = Math.min(98, Math.max(5, district.floodRisk + between(rng, -15, 10)));
       const sr = Math.min(98, Math.max(2, district.salinityRisk + between(rng, -15, 10)));
       const baseNdvi = between(rng, 0.52, 0.8) - fr / 600;
@@ -557,7 +659,8 @@ function seed(): Store {
         geometry: { type: "Polygon", coordinates: fieldPolygon(rng, flat, flon, areaHa) },
         lat: round(flat, 5),
         lon: round(flon, 5),
-        elevationM: round(between(rng, 0.8, 9), 1),
+        // DEM elevation (SRTM-based Terrarium tiles) of the validated plot point (+ sub-cell micro-relief)
+        elevationM: round(Math.max(0.3, (plot ? plot[2] : between(rng, 0.8, 9)) + between(rng, -0.4, 0.4)), 1),
         ndviScore: round(baseNdvi, 2),
         ndviHistory: Array.from({ length: 12 }, (_, w) => ({
           date: new Date(now.getTime() - (11 - w) * 7 * DAY).toISOString().slice(0, 10),
@@ -573,7 +676,7 @@ function seed(): Store {
       id: farmerId,
       userId,
       farmName: `${pick(rng, FARM_SUFFIX)} Farm`,
-      totalAreaHa: round(total, 1),
+      totalAreaHa: round(total, 2),
       primaryCrops: crops,
       experienceYears: intBetween(rng, 3, 38),
       lat: round(lat, 5),
@@ -597,10 +700,15 @@ function seed(): Store {
 
   // Demo farmer: Ratan Das, Barisal
   const barisal = districts.find((d) => d.id === "bd-barisal")!;
-  makeFarmer(0, barisal, "user-farmer-demo", "Ratan Das");
+  // Ratan's homestead: the validated land site closest to the Barisal centroid
+  const ratanSite = [...landSites("bd-barisal")].sort(
+    (a, b) => Math.hypot(a.home[0] - barisal.lat, a.home[1] - barisal.lon) - Math.hypot(b.home[0] - barisal.lat, b.home[1] - barisal.lon),
+  )[0];
+  if (ratanSite) nextSite.reserve(ratanSite);
+  makeFarmer(0, barisal, "user-farmer-demo", "Ratan Das", ratanSite);
   farmers[0]!.farmName = "Green Valley Farm";
-  farmers[0]!.lat = 22.7011;
-  farmers[0]!.lon = 90.3637;
+  farmers[0]!.lat = ratanSite ? ratanSite.home[0] : 22.7011;
+  farmers[0]!.lon = ratanSite ? ratanSite.home[1] : 90.3637;
   farmers[0]!.referralCode = "AGS-RATAN42";
 
   for (let i = 1; i < 50; i++) {
@@ -655,7 +763,12 @@ function seed(): Store {
         type === "flood"
           ? `Upstream discharge on the ${d.riverName} is running above its 30-day mean and soils in low-lying unions are near saturation. Model probability of field-level flooding within 72h: ${prob}%.`
           : `Soil/water EC trending upward at monitoring stations (${d.ecCurrent} → ${d.ecPredicted30d} dS/m forecast in 30 days) as dry-season tides push salt up the ${d.riverName}. Rice yield loss likely above 3 dS/m.`,
-      predictedImpact: { farmsAffected, areaHa: Math.round(farmsAffected * 1.3), estLossUsd: Math.round(farmsAffected * 1.3 * 620), probability: prob / 100 },
+      predictedImpact: {
+        farmsAffected,
+        areaHa: Math.round(farmsAffected * countryStats(d.country).avgFarmHa),
+        estLossUsd: Math.round(farmsAffected * countryStats(d.country).avgFarmHa * countryStats(d.country).paddyYieldTHa * countryStats(d.country).paddyFarmgateUsdT * 0.45),
+        probability: prob / 100,
+      },
       recommendedActions: ACTIONS[type].slice(0, 3),
       channels: ["app", "sms", "whatsapp"],
       validFrom: new Date(now.getTime() - intBetween(rng, 1, 10) * HOUR),
@@ -667,29 +780,128 @@ function seed(): Store {
       deliveries: { sent: farmsAffected, delivered: Math.round(farmsAffected * 0.97), read: Math.round(farmsAffected * 0.81), actioned: Math.round(farmsAffected * 0.58) },
     });
   }
-  const types: AlertType[] = ["flood", "flood", "flood", "salinity", "salinity", "storm", "drought"];
-  for (let i = 0; i < 200; i++) {
-    const d = pick(rng, districts);
-    const type = pick(rng, types);
-    const severity = pick(rng, ["watch", "warning", "warning", "emergency"] as const);
-    const created = new Date(now.getTime() - intBetween(rng, 2, 365) * DAY - intBetween(rng, 0, 23) * HOUR);
-    const sent = intBetween(rng, 80, 4200);
-    const typeLabel = { flood: "Flood", salinity: "Salinity", storm: "Cyclone/Storm", drought: "Dry-spell", frost: "Cold-wave" }[type];
+  // ── Alert archive: 200 alerts issued on REAL events (see server/data/real/README.md) ──
+  // flood    → GloFAS/ERA5 flood episodes, issued 1–3 days before the real onset
+  // salinity → dry-season salt-intrusion seasons (main-stem GloFAS discharge / Java rainfall deficit), issued 5–10 days before onset
+  // storm    → GDACS tropical cyclones whose wind buffer covered the district, issued 1–2 days before closest approach
+  // drought  → in-season 30-day rainfall < 45 % of normal (ERA5), issued once the spell is 10 days old
+  type Candidate = {
+    type: AlertType;
+    d: DistrictRecord;
+    at: Date; // real event date (onset / closest approach)
+    until: Date;
+    severity: AlertSeverity;
+    probability: number;
+    impact: { farmsAffected: number; areaHa: number; estLossUsd: number };
+    description: string;
+    leadDays: [number, number];
+  };
+  const candidates: Candidate[] = [];
+  const cutoff = now.getTime() - DAY;
+  const fmt = (v: number) => Math.round(v).toLocaleString("en-US");
+  for (const d of districts) {
+    const st = countryStats(d.country);
+    const cropValueHa = st.paddyYieldTHa * st.paddyFarmgateUsdT;
+    const th = floodThresholds(d.id);
+    for (const e of floodEvents(d.id)) {
+      const loss = floodLoss({ depthM: e.depthM, durationDays: e.durationDays, vulnerableAreaHa: d.vulnerableAreaHa, country: d.country, month: monthOf(e.peakDate) });
+      const severity: AlertSeverity = e.depthM >= 0.8 || e.durationDays >= 21 ? "emergency" : e.depthM >= 0.3 || e.durationDays >= 7 ? "warning" : "watch";
+      const cause =
+        e.driver === "pluvial"
+          ? `3-day rainfall reached ${fmt(e.peakRain3dMm)} mm (district P99 ${fmt(th?.rain3P99 ?? 0)} mm)`
+          : `GloFAS discharge on the ${d.riverName} peaked at ${fmt(e.peakDischargeM3s)} m³/s on ${e.peakDate} (P95 threshold ${fmt(th?.qP95 ?? 0)} m³/s)${e.driver === "both" ? ` with ${fmt(e.peakRain3dMm)} mm of 3-day rain` : ""}`;
+      candidates.push({
+        type: "flood",
+        d,
+        at: utc(e.start),
+        until: new Date(utc(e.end).getTime() + DAY),
+        severity,
+        probability: round(Math.min(0.97, 0.55 + 0.4 * (1 - Math.exp(-e.depthM / 0.5))), 2),
+        impact: { farmsAffected: loss.farmsAffected, areaHa: loss.floodedHa, estLossUsd: loss.lossUsd },
+        description: `${cause}. Flood conditions ${e.start} → ${e.end} (${e.durationDays} d); ${e.depthM >= 0.05 ? `modelled inundation depth ≈ ${e.depthM} m` : "localised waterlogging of low fields (no overbank inundation modelled)"}.`,
+        leadDays: [1, 3],
+      });
+    }
+    const driver = salinityDriver(d.id);
+    for (const sz of salinitySeasons(d.id)) {
+      if (sz.peakEce < 3) continue;
+      const severity: AlertSeverity = sz.peakEce >= 12 ? "emergency" : sz.peakEce >= 6 ? "warning" : "watch";
+      // Rice (Maas–Hoffman): threshold 3 dS/m, −12 % yield per dS/m above; dry-season crop ≈ half the farmland
+      const yieldLoss = Math.min(0.9, Math.max(0, (sz.peakEce - 3) * 0.12));
+      const areaHa = Math.round(d.vulnerableAreaHa * Math.min(0.6, Math.max(0.05, (sz.peakEce - 3) / 15)) * 0.5);
+      candidates.push({
+        type: "salinity",
+        d,
+        at: utc(sz.onset),
+        until: new Date(utc(sz.peak).getTime() + 30 * DAY),
+        severity,
+        probability: round(Math.min(0.95, 0.5 + 0.2 * sz.intrusionIndex), 2),
+        impact: { farmsAffected: Math.round(areaHa / st.avgFarmHa), areaHa, estLossUsd: Math.round(areaHa * cropValueHa * yieldLoss) },
+        description: `Dry-season salt intrusion ${sz.intrusionIndex >= 1.15 ? "well above" : sz.intrusionIndex <= 0.85 ? "below" : "near"} normal (intrusion index ${sz.intrusionIndex}× from ${driver}). Root-zone EC forecast to peak ≈ ${sz.peakEce} dS/m around ${sz.peak}; rice loses ~12 % yield per dS/m above 3.`,
+        leadDays: [5, 10],
+      });
+    }
+    for (const cy of cyclonesFor(d.id)) {
+      if (cy.windBuffer === "near" && cy.alert === "Green") continue;
+      const severity: AlertSeverity = cy.windBuffer === "red" ? "emergency" : cy.windBuffer === "orange" || cy.alert === "Red" ? "warning" : "watch";
+      const share = { red: 0.3, orange: 0.18, green: 0.08, near: 0.03 }[cy.windBuffer];
+      const areaHa = Math.round(d.vulnerableAreaHa * share);
+      const name = cy.name.replace(/-\d{2}$/, "").split("/").pop()!;
+      candidates.push({
+        type: "storm",
+        d,
+        at: utc(cy.date),
+        until: new Date(utc(cy.date).getTime() + 2 * DAY),
+        severity,
+        probability: cy.windBuffer === "near" ? 0.55 : 0.8,
+        impact: { farmsAffected: Math.round(areaHa / st.avgFarmHa), areaHa, estLossUsd: Math.round(areaHa * cropValueHa * 0.4) },
+        description: `Tropical cyclone ${name} (GDACS ${cy.alert}, max sustained wind ${cy.maxWindKmh} km/h): ${cy.windBuffer === "near" ? `track passed ${cy.distanceKm} km away` : `district inside the ${cy.windBuffer === "red" ? "≥120" : cy.windBuffer === "orange" ? "≥90" : "≥60"} km/h wind buffer`}, closest approach ${cy.date}.`,
+        leadDays: [1, 2],
+      });
+    }
+    for (const sp of drySpells(d.id)) {
+      // rain-fed share of in-season farmland under moisture stress (~10 %), ~12 % yield loss
+      const areaHa = Math.round(d.monitoredAreaHa * 0.1);
+      candidates.push({
+        type: "drought",
+        d,
+        at: new Date(utc(sp.start).getTime() + 10 * DAY),
+        until: utc(sp.end),
+        severity: sp.minRatioToNormal < 0.2 ? "warning" : "watch",
+        probability: 0.7,
+        impact: { farmsAffected: Math.round(areaHa / st.avgFarmHa), areaHa, estLossUsd: Math.round(areaHa * cropValueHa * 0.12) },
+        description: `In-season dry spell: 30-day rainfall fell to ${sp.minRain30dMm} mm (${Math.round(sp.minRatioToNormal * 100)} % of the 2019–2025 normal for the date), ${sp.start} → ${sp.end}.`,
+        leadDays: [0, 0],
+      });
+    }
+  }
+  // The 200 most recent real events whose alert had been issued before today
+  const archive = candidates
+    .filter((c) => c.at.getTime() - c.leadDays[0] * DAY < cutoff)
+    .sort((a, b) => b.at.getTime() - a.at.getTime() || a.d.id.localeCompare(b.d.id) || a.type.localeCompare(b.type))
+    .slice(0, 200);
+  const typeLabel: Record<AlertType, string> = { flood: "Flood", salinity: "Salinity", storm: "Cyclone/Storm", drought: "Dry-spell", frost: "Cold-wave" };
+  for (const c of archive) {
+    const lead = intBetween(rng, c.leadDays[0], c.leadDays[1]);
+    const created = new Date(Math.min(cutoff, c.at.getTime() - lead * DAY + intBetween(rng, 6, 18) * HOUR));
+    const reach = Math.min(c.impact.farmsAffected, c.d.totalFarms);
+    // Enrolled farmers who received it: ~2.5 % platform penetration of affected farms + district subscribers, floor 60
+    const sent = Math.max(60, Math.min(12000, Math.round(reach * 0.025 + c.d.totalFarms * 0.002)));
     alerts.push({
       id: id("alr"),
-      alertType: type,
-      severity,
-      districtId: d.id,
-      title: `${typeLabel} ${severity === "emergency" ? "Emergency" : severity === "warning" ? "Warning" : "Watch"} — ${d.name}`,
-      description: `${typeLabel} ${severity} issued for ${d.name}, ${d.countryName}.`,
-      predictedImpact: { farmsAffected: Math.round(sent * 0.9), areaHa: Math.round(sent * 1.2), estLossUsd: Math.round(sent * 1.2 * 540), probability: round(between(rng, 0.45, 0.95), 2) },
-      recommendedActions: ACTIONS[type].slice(0, 3),
+      alertType: c.type,
+      severity: c.severity,
+      districtId: c.d.id,
+      title: `${typeLabel[c.type]} ${c.severity === "emergency" ? "Emergency" : c.severity === "warning" ? "Warning" : "Watch"} — ${c.d.name}`,
+      description: c.description,
+      predictedImpact: { ...c.impact, probability: c.probability },
+      recommendedActions: ACTIONS[c.type].slice(0, 3),
       channels: rng() > 0.4 ? ["app", "sms", "whatsapp"] : ["app", "sms"],
       validFrom: created,
-      validUntil: new Date(created.getTime() + 72 * HOUR),
+      validUntil: new Date(Math.max(c.until.getTime(), created.getTime() + 24 * HOUR)),
       createdAt: created,
       createdBy: rng() > 0.7 ? "user-gov-demo" : "system",
-      source: rng() > 0.7 ? "manual" : "model",
+      source: c.type === "storm" ? "gdacs" : rng() > 0.7 ? "manual" : "model",
       isActive: false,
       deliveries: {
         sent,
@@ -733,6 +945,12 @@ function seed(): Store {
     { type: "food_aid", label: "Food Aid Packages", unit: "packages", base: 8000 },
   ];
   const inventory: ResourceInventoryRecord[] = [];
+  const depotPoint = (d: DistrictRecord): [number, number] => {
+    const pts = landPoints(d.id);
+    if (!pts.length) return [round(d.lat, 4), round(d.lon, 4)];
+    const best = [...pts].sort((a, b) => Math.hypot(a[0] - d.lat, a[1] - d.lon) - Math.hypot(b[0] - d.lat, b[1] - d.lon))[0]!;
+    return [best[0], best[1]];
+  };
   for (const org of orgs.filter((o) => o.type === "government" && o.verified)) {
     const orgDistricts = districts.filter((d) => d.orgId === org.id);
     const scale = org.id === "org-gov-bd" ? 1 : between(rng, 0.4, 0.8);
@@ -747,7 +965,10 @@ function seed(): Store {
         unit: r.unit,
         total,
         deployed: Math.round(total * deployedPct),
-        depots: orgDistricts.map((d) => ({ name: `${d.name} Central Depot`, lat: round(d.lat + between(rng, -0.05, 0.05), 4), lon: round(d.lon + between(rng, -0.05, 0.05), 4), quantity: Math.round((total * (1 - deployedPct)) / orgDistricts.length), coverageKm: intBetween(rng, 15, 40) })),
+        depots: orgDistricts.map((d) => {
+          const [lat, lon] = depotPoint(d);
+          return { name: `${d.name} Central Depot`, lat, lon, quantity: Math.round((total * (1 - deployedPct)) / orgDistricts.length), coverageKm: intBetween(rng, 15, 40) };
+        }),
       });
     }
   }
@@ -822,8 +1043,8 @@ function seed(): Store {
       type,
       districtId: did,
       country: d.countryName,
-      lat: round(d.lat + between(rng, -0.08, 0.08), 4),
-      lon: round(d.lon + between(rng, -0.08, 0.08), 4),
+      lat: round(facilityByName(name)?.lat ?? d.lat, 4),
+      lon: round(facilityByName(name)?.lon ?? d.lon, 4),
       capacityTonnes: cap,
       utilizationPct: round(between(rng, 48, 94), 0),
       primaryCommodities: comms,
@@ -852,8 +1073,12 @@ function seed(): Store {
     ["onion", "t", 460, 0.7, 0.5, 2600],
     ["maize", "t", 218, 0.6, 0.45, 6100],
   ];
-  const commodities: CommodityRecord[] = COMMODITIES.map(([commodity, unit, base, fs, ss, vol]) => {
-    let p = base;
+  // Prices: real monthly series (World Bank Pink Sheet / WFP / CACP — real/commodity-prices.json),
+  // interpolated to the 26 weekly points; base = trailing 12-month mean. Falls back to the static
+  // base with a flat history only if a series is missing.
+  const commodities: CommodityRecord[] = COMMODITIES.map(([commodity, unit, fallbackBase, fs, ss, vol]) => {
+    const monthly = monthlyPrices(commodity);
+    const base = monthly.length ? Math.round(trailingMean(monthly, 12)) : fallbackBase;
     return {
       commodity,
       unit,
@@ -863,8 +1088,8 @@ function seed(): Store {
       salinitySensitivity: ss,
       weeklyVolumeTonnes: vol,
       priceHistory: Array.from({ length: 26 }, (_, w) => {
-        p = p * (1 + between(rng, -0.025, 0.03));
-        return { date: new Date(now.getTime() - (25 - w) * 7 * DAY).toISOString().slice(0, 10), price: round(p, 0) };
+        const date = new Date(now.getTime() - (25 - w) * 7 * DAY).toISOString().slice(0, 10);
+        return { date, price: round(monthly.length ? priceAt(monthly, date) : base, 0) };
       }),
     };
   });

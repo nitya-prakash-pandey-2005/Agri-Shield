@@ -135,7 +135,7 @@ describe("GET /api/v1/health", () => {
     expect(body.status).toBe("ok");
     expect(body.web.status).toBe("up");
     expect(body.store.farmers).toBe(50);
-    expect(body.jobs.map((j: { name: string }) => j.name)).toEqual(["climate-scan", "notification-dispatch", "satellite-ingest", "model-retrain"]);
+    expect(body.jobs.map((j: { name: string }) => j.name)).toEqual(["climate-scan", "notification-dispatch", "satellite-ingest", "model-retrain", "portfolio-monitor"]);
     expect(calls).toHaveLength(0);
   });
 

@@ -4,6 +4,7 @@
  * (`data`, for LLM planners), a deterministic markdown answer built only from
  * those facts, and UI artifacts (tables, maps, charts, KPI cards).
  */
+import { incidentsTool, sensorsTool, twinBriefingTool, yieldOutlookTool } from "./tools-ext";
 import { getStore } from "../../data/store";
 import { getForecast, weatherLabel } from "../../live/open-meteo";
 import { getHazardEvents } from "../../live/events";
@@ -788,6 +789,10 @@ export const TOOLS: Record<ToolName, (ctx: CopilotContext, args: Args) => Promis
   insurance_stats: insuranceStats,
   finance_stats: financeStats,
   anticipatory_stats: (ctx) => anticipatoryStats(ctx),
+  situation_briefing: (ctx) => twinBriefingTool(ctx),
+  yield_outlook: (ctx) => yieldOutlookTool(ctx),
+  incidents_status: (ctx) => incidentsTool(ctx),
+  sensors_status: (ctx) => sensorsTool(ctx),
 };
 
 /** JSON-schema tool definitions for OpenAI-compatible function calling. */
@@ -804,4 +809,8 @@ export const TOOL_SCHEMAS: { name: ToolName; description: string; parameters: Re
   { name: "insurance_stats", description: "Insurance book statistics: policies, sum insured, premium, products, parametric plots near the rainfall trigger, sum insured at risk.", parameters: { type: "object", properties: { country: { type: "string" } } } },
   { name: "finance_stats", description: "Loan book statistics: outstanding, past due / NPL, outstanding at climate risk, loans both stressed and past due, rating mix.", parameters: { type: "object", properties: { country: { type: "string" } } } },
   { name: "anticipatory_stats", description: "Anticipatory-action figures for communities: households, population, communities meeting readiness triggers, cash to pre-position, shelter distance.", parameters: { type: "object", properties: {} } },
+  { name: "situation_briefing", description: "What needs attention right now: workspace situation summary and the top ranked hotspots (assets, districts, cyclones, hazards) with links.", parameters: { type: "object", properties: {} } },
+  { name: "yield_outlook", description: "In-season crop yield / production forecast for the caller's crop assets: P10/P50/P90 tonnes, % vs 5-year normal, main drivers, insurer payout outlook or bank repayment outlook.", parameters: { type: "object", properties: {} } },
+  { name: "incidents_status", description: "Open incidents in the caller's workspace: severity, status, assets, tasks, SLA breaches, exposure.", parameters: { type: "object", properties: {} } },
+  { name: "sensors_status", description: "IoT sensor fleet status: devices reporting/offline, real events detected in the last 24 h, sensor faults, low batteries, which devices need a field visit.", parameters: { type: "object", properties: {} } },
 ];

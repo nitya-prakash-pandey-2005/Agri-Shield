@@ -113,7 +113,7 @@ describe("copilot LLM planner (OpenAI-compatible function calling, mocked)", () 
       expect(a.toolsUsed.map((t) => t.tool)).toEqual(["finance_stats"]);
       expect(a.markdown).toContain("160 loans");
       expect(a.artifacts.some((x) => x.kind === "kpis")).toBe(true);
-      expect(bodies[0]!.tools.length).toBe(12);
+      expect(bodies[0]!.tools.length).toBe(16);
       expect(bodies[1]!.messages.some((m) => m.role === "tool")).toBe(true);
     } finally {
       vi.unstubAllGlobals();

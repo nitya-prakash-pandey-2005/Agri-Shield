@@ -85,7 +85,7 @@ export function heavyFetch<T>(url: string, weight: number, timeoutMs: number): P
         return await fetchJson<T>(url, timeoutMs);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        if (attempt < 1 && /429/.test(msg)) {
+        if (attempt < 1 && /\b429\b/.test(msg)) {
           await sleep(62_000);
           continue;
         }

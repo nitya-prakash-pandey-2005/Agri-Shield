@@ -47,6 +47,10 @@ export interface Entities {
 
 export type IntentName =
   | "explain"
+  | "situation_briefing"
+  | "yield_outlook"
+  | "incidents_status"
+  | "sensors_status"
   | "compare"
   | "asset_detail"
   | "forecast"
@@ -347,6 +351,8 @@ const RE = {
   location: /\b(risk|risky|safe|exposed|assess\w*|flood\w*|salin\w*|drought|heat|climate|vulnerab\w*|conditions?)\b/i,
 };
 
+const YIELD_RE = /\b(yields?|harvests?|crop production|production outlook|crop output|how much (rice|crop|grain)|tonnes? (of|expected))\b/i;
+
 export function routeQuestion(question: string, lex: Lexicon): RoutedPlan {
   const q = question.trim();
   const e = extractEntities(q, lex);
@@ -370,6 +376,13 @@ export function routeQuestion(question: string, lex: Lexicon): RoutedPlan {
   if (e.term && (explicitExplain || (whatIsTerm && whatIsTerm.key === e.term && !e.places.length))) {
     calls.push({ tool: "explain_metric", args: { term: e.term } });
     return done("explain");
+  }
+
+  // 2a. Yield questions ("yield vs normal") — "normal" is not a place to compare
+  const knownPlace = (p: string) => lex.districts.some((d) => norm(d) === norm(p)) || !!COUNTRY_ALIASES[norm(p)];
+  if (YIELD_RE.test(q) && !e.places.some(knownPlace)) {
+    calls.push({ tool: "yield_outlook", args: {} });
+    return done("yield_outlook");
   }
 
   // 2. Compare places
@@ -399,6 +412,24 @@ export function routeQuestion(question: string, lex: Lexicon): RoutedPlan {
     }
     calls.push({ tool: "hazards_near_assets", args: { radiusKm: e.radiusKm ?? 300 } });
     return done("hazards_near");
+  }
+
+  // 4b. Wave-3 modules: situation briefing, yield, incidents, sensors
+  if (/\b(what should (i|we) (look at|focus on|worry about|check)|what needs (my |our )?attention|situation|briefing|hotspots?|big picture|priorit(y|ies|ise|ize))\b/i.test(q) && !e.places.length) {
+    calls.push({ tool: "situation_briefing", args: {} });
+    return done("situation_briefing");
+  }
+  if (/\b(yields?|harvests?|production|crop output|how much (rice|crop|grain)|tonnes? (of|expected))\b/i.test(q) && !e.places.length) {
+    calls.push({ tool: "yield_outlook", args: {} });
+    return done("yield_outlook");
+  }
+  if (/\b(incidents?|war ?rooms?|sev ?[1-4]|outages?|emergenc(y|ies) (open|underway))\b/i.test(q)) {
+    calls.push({ tool: "incidents_status", args: {} });
+    return done("incidents_status");
+  }
+  if (/\b(sensors?|gauges?|probes?|devices?|iot|telemetry|field visit|batter(y|ies))\b/i.test(q) && !e.places.length) {
+    calls.push({ tool: "sensors_status", args: {} });
+    return done("sensors_status");
   }
 
   // 5. Industry modules

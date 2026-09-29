@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink, loggerLink, TRPCClientError } from "@trpc/client";
+import { httpBatchStreamLink, loggerLink, TRPCClientError } from "@trpc/client";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
@@ -37,7 +37,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         loggerLink({
           enabled: (op) => process.env.NODE_ENV === "development" && op.direction === "down" && op.result instanceof Error && !isExpectedClientError(op.result),
         }),
-        httpBatchLink({ url: "/api/trpc", transformer: superjson }),
+        // Streamed batches: each query resolves as soon as its own result is ready,
+        // so one slow upstream (e.g. a hazard feed) never holds up the whole page.
+        httpBatchStreamLink({ url: "/api/trpc", transformer: superjson }),
       ],
     })
   );

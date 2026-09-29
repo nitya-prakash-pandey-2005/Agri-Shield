@@ -46,10 +46,21 @@ export function navForIndustry(industry: string | null | undefined, badges: Part
   const items = WORKSPACE_NAV.map((n) => ({ ...n, badge: badges[n.href] || undefined }));
   const primary = industry ? PRIMARY_MODULE[industry] : undefined;
   if (!primary) return items;
-  const idx = items.findIndex((n) => n.href === primary);
-  const portfolioIdx = items.findIndex((n) => n.href === "/app/portfolio");
-  if (idx < 0 || portfolioIdx < 0 || idx === portfolioIdx + 1) return items;
-  const [item] = items.splice(idx, 1);
-  items.splice(items.findIndex((n) => n.href === "/app/portfolio") + 1, 0, item!);
-  return items;
+  const item = items.find((n) => n.href === primary);
+  if (!item) return items;
+  // Lift the industry's key module to the top of its own section, and move that
+  // whole section up to follow "Monitor" — sections stay contiguous.
+  const sections: string[] = [];
+  for (const n of items) if (n.section && !sections.includes(n.section)) sections.push(n.section);
+  const bySection = new Map(sections.map((sec) => [sec, items.filter((n) => n.section === sec)]));
+  const own = bySection.get(item.section ?? "")!;
+  own.splice(own.indexOf(item), 1);
+  own.unshift(item);
+  const order = [...sections];
+  const from = order.indexOf(item.section ?? "");
+  if (from > 1) {
+    order.splice(from, 1);
+    order.splice(1, 0, item.section!);
+  }
+  return order.flatMap((sec) => bySection.get(sec)!);
 }

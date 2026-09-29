@@ -17,7 +17,11 @@ export type ToolName =
   | "explain_metric"
   | "insurance_stats"
   | "finance_stats"
-  | "anticipatory_stats";
+  | "anticipatory_stats"
+  | "situation_briefing"
+  | "yield_outlook"
+  | "incidents_status"
+  | "sensors_status";
 
 export interface ToolCall {
   tool: ToolName;

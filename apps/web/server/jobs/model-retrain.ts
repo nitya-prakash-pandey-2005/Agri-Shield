@@ -9,11 +9,13 @@ import { fetchJson } from "../live/http";
 import { ML_API_URL, getModelMetrics, mlHealth } from "../ml-client";
 import { lastSuccess, type JobResult } from "./registry";
 
+/** Shape returned by apps/ml-api models/registry.py `retrain()` (champion/challenger). */
 interface RetrainResponse {
-  status?: string;
-  promoted?: boolean;
-  models?: { name: string; version?: string; auc?: number; previous_auc?: number; promoted?: boolean }[];
-  message?: string;
+  decision?: "promoted" | "kept_deployed" | "skipped";
+  reason?: string;
+  duration_s?: number;
+  flood?: { candidate_version?: string; candidate_auc?: number; deployed_version?: string | null; deployed_auc?: number | null; promoted?: boolean };
+  salinity?: { candidate_version?: string; candidate_rmse?: number; deployed_version?: string | null; deployed_rmse?: number | null; promoted?: boolean };
   [k: string]: unknown;
 }
 
@@ -64,11 +66,19 @@ export async function modelRetrain(opts: { force?: boolean; triggeredBy?: string
   }
   const after = await getModelMetrics();
   const versions = (m: typeof before) => m.models.map((x) => `${x.name}@${x.version}`).join(", ");
-  const promoted = response.promoted ?? response.models?.some((m) => m.promoted) ?? false;
+  if (response.decision === "skipped") {
+    return { status: "skipped", summary: `Retrain skipped by ML service: ${response.reason ?? "busy"}`, output: { response } };
+  }
+  const f = response.flood;
+  const sal = response.salinity;
+  const parts = [
+    f ? `flood ${f.promoted ? "promoted" : "kept"} (AUC ${f.candidate_auc ?? "?"} vs ${f.deployed_auc ?? "n/a"})` : null,
+    sal ? `salinity ${sal.promoted ? "promoted" : "kept"} (RMSE ${sal.candidate_rmse ?? "?"} vs ${sal.deployed_rmse ?? "n/a"})` : null,
+  ].filter(Boolean);
 
   return {
     status: "success",
-    summary: `Retrain ${response.status ?? "completed"} on ${actions.length} new outcome(s) — ${promoted ? "new model promoted" : "current model kept"}; now serving ${versions(after)}`,
+    summary: `Retrain on ${actions.length} new outcome(s) in ${response.duration_s ?? "?"}s — ${parts.join("; ") || response.decision}; now serving ${versions(after)}`,
     output: { samples: actions.length, labelled: withOutcome.length, response, before: before.models, after: after.models, metricsSource: after.source },
   };
 }

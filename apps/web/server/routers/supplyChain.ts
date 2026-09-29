@@ -305,7 +305,7 @@ async def agrishield_hook(request: Request):
     return {"received": True}`,
       },
       retryPolicy: "Non-2xx responses and timeouts (10 s) are logged in the delivery log; threshold events re-fire after 6 h or when risk rises ≥5 points.",
-      rateLimits: "REST: 100 requests/min per key, 1,000/min per organisation.",
+      rateLimits: "REST: 600 requests/min per API key, 1,000/min per organisation, 30/min anonymous per IP. Auth via X-API-Key or Authorization: Bearer.",
     };
   }),
 });

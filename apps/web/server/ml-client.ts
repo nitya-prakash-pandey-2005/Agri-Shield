@@ -223,10 +223,11 @@ export async function getModelMetrics(): Promise<ModelMetrics> {
   } catch {
     return {
       source: "web-fallback",
+      // Reference values from the last committed training run (apps/ml-api/model_weights/metrics.json)
       models: [
-        { name: "flood-ensemble (LSTM + GBM)", version: "v2.3.1", auc: 0.91, f1: 0.84, brier: 0.09, trained_at: "2026-09-21T02:00:00Z", drift_psi: 0.06, samples: 48000 },
-        { name: "salinity-lgbm", version: "v1.4.0", rmse: 0.62, r2: 0.87, trained_at: "2026-09-21T02:00:00Z", drift_psi: 0.11, samples: 22000 },
-        { name: "supply-chain-impact (Monte Carlo)", version: "v1.1.0", trained_at: "2026-09-14T02:00:00Z" },
+        { name: "flood-ensemble (temporal-MLP + HistGBM)", version: "v2.2.0", auc: 0.969, f1: 0.756, brier: 0.036, rmse: 0.108, r2: 0.549, trained_at: "2026-09-29T00:14:09Z", drift_psi: 0.012, samples: 56188 },
+        { name: "salinity-histgbm (EC 0/7/30/90 d)", version: "v1.6.0", rmse: 1.027, r2: 0.869, trained_at: "2026-09-29T00:14:23Z", drift_psi: 0.011, samples: 56254 },
+        { name: "supply-chain-impact (Monte Carlo)", version: "v1.2.0", trained_at: "2026-09-29T00:00:00Z" },
       ],
     };
   }

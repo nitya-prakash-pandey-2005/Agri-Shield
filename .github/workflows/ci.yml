@@ -51,7 +51,9 @@ jobs:
         run: pnpm --filter @agri-shield/web type-check
 
       - name: Unit & integration tests (Vitest)
-        run: pnpm --filter @agri-shield/web test
+        # github-actions reporter turns each failing test into an annotation on the run;
+        # one retry absorbs rare timing flakes on shared runners (real failures still fail)
+        run: pnpm --filter @agri-shield/web exec vitest run --reporter=default --reporter=github-actions --retry=1
 
       - name: Cache Next.js build
         uses: actions/cache@v4

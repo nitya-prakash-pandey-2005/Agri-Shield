@@ -1,166 +1,131 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
-import { formatDistanceToNowStrict } from "date-fns";
-import { AlertOctagon, Download, Laptop, Loader2, LogOut, ShieldCheck, Smartphone, Trash2, Undo2 } from "lucide-react";
+/**
+ * Settings → Security. Personal (2-step verification, sessions) for everyone;
+ * workspace controls (score card, 2FA policy, members & sessions, custom roles,
+ * SSO, IP allow-list, audit export, data export/deletion) for admins.
+ */
+import { Suspense, useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { motion } from "framer-motion";
+import { Database, Fingerprint, Gauge, Globe2, ShieldCheck, UserCog, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { EmptyState, Panel, Skeleton, SourceTag } from "@/components/hud";
-import { Btn, Field, Modal, Toggle, downloadBlob, inputCls } from "@/components/workspace/ui";
+import { Skeleton } from "@/components/hud";
 import { cn } from "@/lib/utils";
+import { ScoreCard } from "./_components/ScoreCard";
+import { SessionsPanel, TwoFactorPanel } from "./_components/AccountPanel";
+import { MembersPanel, PolicyPanel } from "./_components/MembersPanel";
+import { RolesPanel } from "./_components/RolesPanel";
+import { SsoPanel } from "./_components/SsoPanel";
+import { AuditExportPanel, IpAllowlistPanel } from "./_components/NetworkPanel";
+import { DataPanel } from "./_components/DataPanel";
 
-export default function SecuritySettings() {
+const VIEWS = [
+  { id: "overview", label: "Overview", icon: Gauge, admin: true },
+  { id: "account", label: "Your account", icon: ShieldCheck, admin: false },
+  { id: "members", label: "Members & 2FA", icon: Users, admin: true },
+  { id: "roles", label: "Roles", icon: UserCog, admin: true },
+  { id: "sso", label: "Single sign-on", icon: Fingerprint, admin: true },
+  { id: "network", label: "Network & audit", icon: Globe2, admin: true },
+  { id: "data", label: "Data", icon: Database, admin: false },
+] as const;
+
+function SecurityInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
   const utils = trpc.useUtils();
-  const q = trpc.workspace.security.useQuery();
-  const set2fa = trpc.workspace.setTwoFactor.useMutation({ onSuccess: () => void utils.workspace.security.invalidate() });
-  const revoke = trpc.workspace.revokeSession.useMutation({ onSuccess: () => void utils.workspace.security.invalidate() });
-  const exportWs = trpc.workspace.exportWorkspace.useMutation();
-  const requestDel = trpc.workspace.requestDeletion.useMutation();
-  const cancelDel = trpc.workspace.cancelDeletion.useMutation();
-  const [delOpen, setDelOpen] = useState(false);
-  const [confirmName, setConfirmName] = useState("");
-  const [reason, setReason] = useState("");
+  const ov = trpc.developer.security.overview.useQuery(undefined, { refetchInterval: 30_000 });
+  const canManage = !!ov.data?.canManage;
+  const score = trpc.developer.security.score.useQuery(undefined, { enabled: canManage });
 
-  const d = q.data;
-  if (!d) return <div className="grid gap-4 lg:grid-cols-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-56" />)}</div>;
-  const pendingDel = d.deletion && d.deletion.status === "pending" ? d.deletion : null;
+  // A revoked session gets UNAUTHORIZED on its next request → send it to sign-in
+  useEffect(() => {
+    const code = (ov.error?.data as { code?: string } | undefined)?.code;
+    if (code === "UNAUTHORIZED") void signOut({ callbackUrl: `/auth/signin?callbackUrl=${encodeURIComponent(pathname)}` });
+  }, [ov.error, pathname]);
 
-  const doExport = async () => {
-    try {
-      const data = await exportWs.mutateAsync();
-      const name = `agri-shield-workspace-${new Date().toISOString().slice(0, 10)}.json`;
-      downloadBlob(name, JSON.stringify(data, null, 2), "application/json");
-      toast.success(`Exported ${data.assets.length} assets, ${data.members.length} members, ${data.audit.length} audit events`);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+  const views = VIEWS.filter((v) => canManage || !v.admin);
+  const requested = params?.get("view");
+  const view = views.find((v) => v.id === requested)?.id ?? (canManage ? "overview" : "account");
+  const go = (v: string) => {
+    if (v === "api") return router.push("/app/developers?tab=keys");
+    router.replace(`${pathname}?view=${v}`, { scroll: false });
+  };
+  const refresh = () => {
+    void utils.developer.security.overview.invalidate();
+    void utils.developer.security.score.invalidate();
   };
 
+  if (ov.error && (ov.error.data as { code?: string } | undefined)?.code === "FORBIDDEN")
+    return <div className="hud-panel p-5 text-sm text-rose-200">{ov.error.message}</div>;
+  const d = ov.data;
+  if (!d) return <div className="grid gap-4 lg:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-56" />)}</div>;
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Panel title="Active sessions" subtitle="Your recent sign-ins" icon={Laptop} accent="cyan" actions={<SourceTag>derived from sign-in audit events</SourceTag>}>
-        {d.sessions.length === 0 ? (
-          <EmptyState icon={Laptop} title="No sign-ins recorded since the last restart" />
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {d.sessions.map((s) => (
-              <li key={s.id} className={cn("flex items-center gap-3 py-2.5", s.revoked && "opacity-50")}>
-                {/mobile/i.test(s.device) ? <Smartphone size={16} className="text-slate-400" /> : <Laptop size={16} className="text-slate-400" />}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] text-slate-100">
-                    {s.device} {s.current && <span className="ml-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">This device</span>}
-                    {s.revoked && <span className="ml-1 rounded-full bg-slate-700/60 px-1.5 py-0.5 text-[10px] text-slate-400">Revoked</span>}
-                  </div>
-                  <div className="text-[11.5px] text-slate-500">
-                    Signed in {formatDistanceToNowStrict(new Date(s.at), { addSuffix: true })} via {s.method} · IP {s.ip} · expires {new Date(s.expiresAt).toISOString().slice(0, 10)}
-                  </div>
-                </div>
-                {!s.current && !s.revoked && (
-                  <button onClick={() => revoke.mutate({ id: s.id }, { onSuccess: () => toast.success("Session revoked") })} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-slate-400 hover:bg-rose-500/10 hover:text-rose-300">
-                    <LogOut size={12} /> Revoke
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-3 text-[11.5px] text-slate-500">Sessions are signed tokens that expire after 7 days. Revoking marks the session in your audit trail; change your password to force every device to sign in again.</p>
-      </Panel>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <p className="max-w-3xl text-[13px] leading-relaxed text-slate-400">
+          <b className="text-slate-200">What this means for you:</b> {canManage ? "control who can get into this workspace and how — 2-step verification, company single sign-on, network restrictions and exactly what each role can do. Every change is recorded in the audit log." : "protect your own account with an authenticator app and see every device you're signed in on. Your workspace admins manage the rest."}
+        </p>
+      </div>
 
-      <Panel title="2-step verification" icon={ShieldCheck} accent="emerald">
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-3">
-          <div>
-            <div className="text-[13px] text-slate-100">Require a second step when I sign in</div>
-            <div className="text-[11.5px] text-slate-500">{d.twoFactor.twoFactor ? `On · ${d.twoFactor.method === "totp" ? "authenticator app" : d.twoFactor.method.toUpperCase()} · updated ${d.twoFactor.updatedAt ? formatDistanceToNowStrict(new Date(d.twoFactor.updatedAt), { addSuffix: true }) : ""}` : "Off"}</div>
-          </div>
-          <Toggle checked={d.twoFactor.twoFactor} label="2-step verification" onChange={(v) => set2fa.mutate({ enabled: v, method: d.twoFactor.method }, { onSuccess: () => toast.success(v ? "2-step verification preference saved" : "2-step verification turned off") })} />
-        </div>
-        <Field label="Method" className="mt-3">
-          <select className={inputCls} value={d.twoFactor.method} onChange={(e) => set2fa.mutate({ enabled: d.twoFactor.twoFactor, method: e.target.value as "totp" | "sms" | "email" })}>
-            <option value="totp">Authenticator app (TOTP)</option>
-            <option value="sms">SMS code</option>
-            <option value="email">Email code</option>
-          </select>
-        </Field>
-        <p className="mt-3 rounded-lg bg-slate-900/60 px-3 py-2 text-[11.5px] text-slate-400">Your preference is stored and audited now. Enforcement at sign-in is enabled per workspace on Enterprise (SSO/SAML) — email/OTP codes already protect farmer and OTP sign-ins.</p>
-      </Panel>
+      <nav aria-label="Security sections" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        {views.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => go(v.id)}
+            className={cn("relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] transition-colors", view === v.id ? "text-slate-950" : "text-slate-400 hover:bg-white/5 hover:text-slate-200")}
+            aria-current={view === v.id ? "page" : undefined}
+          >
+            {view === v.id && <motion.span layoutId="sec-view" className="absolute inset-0 rounded-lg bg-cyan-400" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+            <v.icon size={13} className="relative" />
+            <span className="relative">{v.label}</span>
+          </button>
+        ))}
+      </nav>
 
-      <Panel title="Export workspace data" icon={Download} accent="violet">
-        <p className="text-[13px] text-slate-300">Download everything in this workspace as one JSON file: organisation settings, members (without passwords), assets, alert rules, notifications, reports, schedules, invites, API key prefixes, webhooks (without secrets), usage and the audit log.</p>
-        <Btn className="mt-3" onClick={doExport} disabled={exportWs.isPending || !d.canManage}>
-          {exportWs.isPending ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Export JSON
-        </Btn>
-        {!d.canManage && <p className="mt-2 text-[11.5px] text-slate-500">Only admins can export the whole workspace.</p>}
-      </Panel>
-
-      <Panel title="Delete workspace" icon={AlertOctagon} accent="red">
-        {pendingDel ? (
+      <motion.div key={view} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="space-y-4">
+        {view === "overview" && (
           <>
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-[13px] text-rose-200">
-              Deletion requested by {pendingDel.requestedByName} {formatDistanceToNowStrict(new Date(pendingDel.requestedAt), { addSuffix: true })}. Scheduled for <b>{new Date(pendingDel.scheduledFor).toISOString().slice(0, 10)}</b>.
+            {score.data ? <ScoreCard score={score.data} onNavigate={go} /> : <Skeleton className="h-56" />}
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TwoFactorPanel d={d} refresh={refresh} />
+              <PolicyPanel require2fa={d.policy.require2fa} since={d.policy.require2faSince} members={score.data?.members ?? 0} enrolled={score.data?.enrolled ?? 0} onChanged={refresh} />
             </div>
-            {d.canManage && (
-              <Btn
-                variant="outline"
-                className="mt-3"
-                onClick={async () => {
-                  await cancelDel.mutateAsync();
-                  toast.success("Deletion cancelled");
-                  await Promise.all([utils.workspace.security.invalidate(), utils.workspace.me.invalidate()]);
-                }}
-              >
-                <Undo2 size={14} /> Cancel deletion
-              </Btn>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="text-[13px] text-slate-300">Permanently delete {d.orgName} and all its data. There's a 30-day grace period during which any admin can cancel. We recommend exporting first.</p>
-            <Btn variant="danger" className="mt-3" disabled={!d.canManage} onClick={() => setDelOpen(true)}>
-              <Trash2 size={14} /> Request deletion
-            </Btn>
           </>
         )}
-      </Panel>
-
-      <Modal
-        open={delOpen}
-        onClose={() => setDelOpen(false)}
-        title="Delete this workspace?"
-        footer={
+        {view === "account" && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <TwoFactorPanel d={d} refresh={refresh} />
+            <SessionsPanel d={d} refresh={refresh} />
+          </div>
+        )}
+        {view === "members" && (
           <>
-            <Btn variant="outline" onClick={() => setDelOpen(false)}>
-              Keep workspace
-            </Btn>
-            <Btn
-              variant="danger"
-              disabled={confirmName !== d.orgName || requestDel.isPending}
-              onClick={async () => {
-                try {
-                  await requestDel.mutateAsync({ confirmName, reason });
-                  toast.success("Deletion scheduled in 30 days — admins have been emailed");
-                  setDelOpen(false);
-                  await Promise.all([utils.workspace.security.invalidate(), utils.workspace.me.invalidate()]);
-                } catch (e) {
-                  toast.error((e as Error).message);
-                }
-              }}
-            >
-              Schedule deletion
-            </Btn>
+            <PolicyPanel require2fa={d.policy.require2fa} since={d.policy.require2faSince} members={score.data?.members ?? 0} enrolled={score.data?.enrolled ?? 0} onChanged={refresh} />
+            <MembersPanel onChanged={refresh} />
           </>
-        }
-      >
-        <div className="space-y-3">
-          <p className="text-[13px] text-slate-300">All assets, rules, reports, members and integrations will be removed after 30 days. API keys stop working at that point.</p>
-          <Field label={<>Type <b className="text-white">{d.orgName}</b> to confirm</>}>
-            <input className={inputCls} value={confirmName} onChange={(e) => setConfirmName(e.target.value)} />
-          </Field>
-          <Field label="Why are you leaving? (optional)">
-            <textarea className={cn(inputCls, "h-20 py-2")} value={reason} onChange={(e) => setReason(e.target.value)} />
-          </Field>
-        </div>
-      </Modal>
+        )}
+        {view === "roles" && <RolesPanel onChanged={refresh} />}
+        {view === "sso" && <SsoPanel orgShort={d.org?.name.split(" ")[0] ?? "company"} onChanged={refresh} />}
+        {view === "network" && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <IpAllowlistPanel policy={d.policy.ipAllowlist} currentIp={d.currentIp} onChanged={refresh} />
+            <AuditExportPanel />
+          </div>
+        )}
+        {view === "data" && <DataPanel />}
+      </motion.div>
     </div>
+  );
+}
+
+export default function SecuritySettings() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64" />}>
+      <SecurityInner />
+    </Suspense>
   );
 }

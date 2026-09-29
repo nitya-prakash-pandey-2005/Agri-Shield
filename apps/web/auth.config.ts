@@ -1,5 +1,8 @@
 /**
  * Edge-safe NextAuth config (used by middleware). No providers that touch data.
+ * Session revocation, 2-step verification and SSO are enforced node-side in
+ * auth.ts (jwt callback wrapper) and server/trpc.ts — nothing here may import
+ * node:crypto or the store.
  */
 import type { NextAuthConfig } from "next-auth";
 import type { UserRole, SupportedLanguage } from "@agri-shield/types";
@@ -14,11 +17,17 @@ declare module "next-auth" {
       orgId: string | null;
       language: SupportedLanguage;
     };
+    /** Server-side session id (see server/services/sessions.ts) */
+    sid?: string;
+    /** Authentication methods used at sign-in (RFC 8176): pwd, otp, mfa, sso… */
+    amr?: string[];
   }
   interface User {
     role?: UserRole;
     orgId?: string | null;
     language?: SupportedLanguage;
+    sid?: string;
+    amr?: string[];
   }
 }
 
@@ -42,6 +51,9 @@ export const authConfig = {
         token.role = user.role;
         token.orgId = user.orgId ?? null;
         token.language = user.language ?? "en";
+        if (user.sid) token.sid = user.sid;
+        if (user.amr) token.amr = user.amr;
+        token.authAt = Date.now();
       }
       if (trigger === "update" && session?.language) token.language = session.language;
       return token;
@@ -51,6 +63,8 @@ export const authConfig = {
       session.user.role = token.role as UserRole;
       session.user.orgId = (token.orgId as string | null) ?? null;
       session.user.language = (token.language as SupportedLanguage) ?? "en";
+      if (token.sid) session.sid = token.sid as string;
+      if (token.amr) session.amr = token.amr as string[];
       return session;
     },
   },

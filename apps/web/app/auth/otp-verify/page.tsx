@@ -62,6 +62,15 @@ function OtpForm() {
     setBusy(true);
     setError(null);
     const res = await signIn("credentials", { mode: "otp", identifier, otp: code, redirect: false }).catch(() => null);
+    // Workspace accounts with 2-step verification continue on /auth/two-factor
+    const challenge = res?.code?.match(/^mfa_(required|enrol):(.+)$/);
+    if (challenge) {
+      try {
+        sessionStorage.setItem("ags_mfa_challenge", challenge[2]!);
+      } catch {}
+      router.push(`/auth/two-factor${next ? `?callbackUrl=${encodeURIComponent(next)}` : ""}`);
+      return;
+    }
     if (!res || res.error) {
       busyRef.current = false;
       setBusy(false);

@@ -6,9 +6,13 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { auth } from "@/auth";
-import { can, type Permission } from "@/lib/rbac";
+import type { Permission } from "@/lib/rbac";
 import { rateLimit } from "./rate-limit";
 import { ensureLiveRisk } from "./live/district-risk";
+// Enterprise security layer: live custom-role resolution, session denylist, IP allow-list
+import { denialMessage, resolvePermission } from "./services/custom-roles";
+import { isSessionRevoked, touchSession } from "./services/sessions";
+import { ipBlockReason } from "./auth/ip-allowlist";
 
 export async function createContext(opts: { req: Request }) {
   const session = await auth();
@@ -44,13 +48,27 @@ export const publicProcedure = t.procedure.use(limited);
 
 export const protectedProcedure = publicProcedure.use(({ ctx, next }) => {
   if (!ctx.session?.user?.id) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in required" });
-  return next({ ctx: { ...ctx, user: ctx.session.user } });
+  const sid = (ctx.session as { sid?: string }).sid;
+  // Revoked sessions stop working immediately (the auth() jwt callback also enforces this)
+  if (isSessionRevoked(sid)) throw new TRPCError({ code: "UNAUTHORIZED", message: "This session was signed out. Sign in again." });
+  const user = ctx.session.user;
+  if (user.role !== "platform_admin") {
+    const blocked = ipBlockReason(user.orgId, ctx.ip);
+    if (blocked) throw new TRPCError({ code: "FORBIDDEN", message: blocked });
+  }
+  touchSession(sid, { ip: ctx.ip, userAgent: ctx.req?.headers.get("user-agent") ?? undefined });
+  return next({ ctx: { ...ctx, user } });
 });
 
+/**
+ * Permission guard. Built-in RBAC (lib/rbac.ts) unless the member has a
+ * workspace custom role, in which case its permission set and module list
+ * (checked against the procedure path) apply — see services/custom-roles.ts.
+ */
 export const permitted = (permission: Permission) =>
-  protectedProcedure.use(({ ctx, next }) => {
-    if (!can(ctx.user.role, permission)) {
-      throw new TRPCError({ code: "FORBIDDEN", message: `Missing permission: ${permission}` });
+  protectedProcedure.use(({ ctx, path, next }) => {
+    if (!resolvePermission({ id: ctx.user.id, role: ctx.user.role, orgId: ctx.user.orgId }, permission, path)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: denialMessage({ id: ctx.user.id, role: ctx.user.role, orgId: ctx.user.orgId }, permission, path) });
     }
     return next();
   });

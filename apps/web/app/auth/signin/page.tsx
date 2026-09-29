@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Building2, Eye, EyeOff, HandHeart, KeyRound, Landmark, Loader2, Mail, ShieldCheck, Smartphone, Sprout, Truck, UserCog, Users } from "lucide-react";
+import { ArrowRight, Building2, Eye, EyeOff, Fingerprint, HandHeart, KeyRound, Landmark, Loader2, Mail, ShieldCheck, Smartphone, Sprout, Truck, UserCog, Users } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { AuthShell, FieldError, FormError, authInput, destinationAfterLogin, inputState, safeCallback } from "../_components/AuthShell";
+
+const SSO_REQUIRED = "Your organisation signs in with single sign-on — use “Sign in with SSO”.";
 
 type Demo = { key: string; label: string; icon: typeof Sprout; color: string; creds: Record<string, string> };
 
@@ -25,11 +27,12 @@ function SignInForm() {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
-  const initialErr = params?.get("error") ? (params.get("code") === "account_suspended" ? t("auth.errorSuspended") : t("auth.errorInvalid")) : null;
+  const initialErr = params?.get("error") ? (params.get("code") === "account_suspended" ? t("auth.errorSuspended") : params.get("code") === "sso_required" ? SSO_REQUIRED : t("auth.errorInvalid")) : null;
   const [error, setError] = useState<string | null>(initialErr);
   const requestOtp = trpc.auth.requestOtp.useMutation();
 
-  const errorFor = (code?: string | null) => (code === "account_suspended" ? t("auth.errorSuspended") : code ? t("auth.errorInvalid") : t("auth.errorGeneric"));
+  const errorFor = (code?: string | null) =>
+    code === "account_suspended" ? t("auth.errorSuspended") : code === "sso_required" ? SSO_REQUIRED : code === "mfa_locked" ? "Too many wrong codes — try again in 15 minutes." : code ? t("auth.errorInvalid") : t("auth.errorGeneric");
 
   const finish = async () => {
     const dest = await destinationAfterLogin(callbackUrl);
@@ -42,6 +45,16 @@ function SignInForm() {
     setError(null);
     try {
       const res = await signIn("credentials", { ...creds, redirect: false });
+      // 2-step verification: the password was right but no session exists yet —
+      // continue on /auth/two-factor with the short-lived challenge.
+      const challenge = res?.code?.match(/^mfa_(required|enrol):(.+)$/);
+      if (challenge) {
+        try {
+          sessionStorage.setItem("ags_mfa_challenge", challenge[2]!);
+        } catch {}
+        router.push(`/auth/two-factor${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`);
+        return;
+      }
       if (!res || res.error) {
         setError(errorFor(res?.code ?? res?.error));
         setBusy(null);
@@ -161,6 +174,13 @@ function SignInForm() {
           )}
         </AnimatePresence>
       </div>
+
+      <Link
+        href={`/auth/sso${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`}
+        className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/[0.06] text-sm font-medium text-cyan-200 transition-colors hover:border-cyan-300/60 hover:bg-cyan-400/10"
+      >
+        <Fingerprint size={16} /> Sign in with SSO
+      </Link>
 
       <div className="my-6 flex items-center gap-3">
         <span className="hud-divider flex-1" />

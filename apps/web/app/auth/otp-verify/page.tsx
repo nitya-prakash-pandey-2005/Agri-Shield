@@ -29,7 +29,15 @@ function OtpForm() {
   const params = useSearchParams();
   const identifier = params?.get("identifier") ?? "";
   const next = safeCallback(params?.get("next")) ?? safeCallback(params?.get("callbackUrl"));
-  const [digits, setDigits] = useState<string[]>(Array(LEN).fill(""));
+  const [digits, setDigitsState] = useState<string[]>(Array(LEN).fill(""));
+  // Source of truth updated synchronously, so fast typing / SMS autofill can't
+  // overwrite a digit with a stale render's array.
+  const digitsRef = useRef<string[]>(Array(LEN).fill(""));
+  const setDigits = (arr: string[]) => {
+    digitsRef.current = arr;
+    setDigitsState(arr);
+  };
+  const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(RESEND_S);
@@ -49,11 +57,13 @@ function OtpForm() {
   }, [left]);
 
   const verify = async (code: string) => {
-    if (code.length !== LEN || busy) return;
+    if (code.length !== LEN || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     const res = await signIn("credentials", { mode: "otp", identifier, otp: code, redirect: false }).catch(() => null);
     if (!res || res.error) {
+      busyRef.current = false;
       setBusy(false);
       setError(res?.code === "account_suspended" ? t("auth.errorSuspended") : t("auth.wrongCode"));
       setDigits(Array(LEN).fill(""));
@@ -70,7 +80,7 @@ function OtpForm() {
     const clean = v.replace(/\D/g, "");
     if (clean.length > 1) {
       // paste or autofill of multiple digits
-      const arr = [...digits];
+      const arr = [...digitsRef.current];
       for (let k = 0; k < clean.length && i + k < LEN; k++) arr[i + k] = clean[k]!;
       setDigits(arr);
       const nextIdx = Math.min(LEN - 1, i + clean.length);
@@ -78,23 +88,23 @@ function OtpForm() {
       if (arr.every(Boolean)) void verify(arr.join(""));
       return;
     }
-    const arr = [...digits];
-    arr[i] = clean;
+    const arr = [...digitsRef.current];
+    arr[i] = clean.slice(-1);
     setDigits(arr);
     if (clean && i < LEN - 1) refs.current[i + 1]?.focus();
     if (arr.every(Boolean)) void verify(arr.join(""));
   };
 
   const onKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
+    if (e.key === "Backspace" && !digitsRef.current[i] && i > 0) {
       refs.current[i - 1]?.focus();
-      const arr = [...digits];
+      const arr = [...digitsRef.current];
       arr[i - 1] = "";
       setDigits(arr);
     }
     if (e.key === "ArrowLeft" && i > 0) refs.current[i - 1]?.focus();
     if (e.key === "ArrowRight" && i < LEN - 1) refs.current[i + 1]?.focus();
-    if (e.key === "Enter") void verify(digits.join(""));
+    if (e.key === "Enter") void verify(digitsRef.current.join(""));
   };
 
   const onPaste = (e: React.ClipboardEvent) => {

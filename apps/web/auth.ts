@@ -7,8 +7,9 @@ import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
-import { getStore, audit } from "./server/data/store";
-import { verifyOtp } from "./server/auth/otp";
+import { getStore, audit, nextId } from "./server/data/store";
+import { otpKey, verifyOtp } from "./server/auth/otp";
+import { isPhoneLike, normalizePhone, phonesMatch } from "./server/auth/phone";
 
 class InvalidLogin extends CredentialsSignin {
   code = "invalid_credentials";
@@ -37,9 +38,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user = store.users.find((u) => u.email?.toLowerCase() === data.email.toLowerCase());
           if (!user || !user.password || user.password !== data.password) throw new InvalidLogin();
         } else {
-          const id = data.identifier.replace(/\s/g, "").toLowerCase();
-          user = store.users.find((u) => u.email?.toLowerCase() === id || u.phone?.replace(/\s/g, "") === id);
-          if (!user || !verifyOtp(id, data.otp)) throw new InvalidLogin();
+          const raw = data.identifier.trim();
+          const phone = isPhoneLike(raw);
+          const email = raw.toLowerCase();
+          user = phone ? store.users.find((u) => phonesMatch(u.phone, raw)) : store.users.find((u) => u.email?.toLowerCase() === email);
+          if (!verifyOtp(otpKey(raw), data.otp)) throw new InvalidLogin();
+          if (!user && phone) {
+            // Phone-first sign-up: a verified number that is new to us becomes a farmer
+            // account; the farmer app then routes them through onboarding.
+            user = {
+              id: nextId("user"),
+              email: null,
+              phone: normalizePhone(raw),
+              name: "New farmer",
+              role: "farmer" as const,
+              language: "en" as const,
+              orgId: null,
+              subscriptionTier: "free" as const,
+              status: "active" as const,
+              createdAt: new Date(),
+              lastActive: new Date(),
+            };
+            store.users.push(user);
+            audit({ userId: user.id, userName: user.name, action: "user.register", entity: "user", entityId: user.id, details: "Registered via phone OTP" });
+          }
+          if (!user) throw new InvalidLogin();
         }
         if (user.status === "suspended") throw new Suspended();
         user.lastActive = new Date();

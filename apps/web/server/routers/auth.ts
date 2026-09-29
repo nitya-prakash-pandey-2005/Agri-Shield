@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { publicProcedure, protectedProcedure, router } from "../trpc";
 import { getStore, nextId, audit, type UserRecord } from "../data/store";
 import { issueOtp } from "../auth/otp";
+import { normalizePhone, phonesMatch } from "../auth/phone";
 import { sendSms } from "../notify/channels";
 import { provisionWorkspace } from "../services/workspace-provision";
 
@@ -17,7 +18,7 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const id = input.identifier.replace(/\s/g, "").toLowerCase();
       const code = issueOtp(id);
-      if (!id.includes("@")) await sendSms(id, `Your Agri-SHIELD code is ${code}. Valid 10 minutes.`);
+      if (!id.includes("@")) await sendSms(normalizePhone(input.identifier), `Your Agri-SHIELD code is ${code}. Valid 10 minutes.`);
       const demo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
       return { sent: true, channel: id.includes("@") ? "email" : "sms", demoHint: demo ? "Demo mode: use 123456" : null };
     }),
@@ -40,7 +41,7 @@ export const authRouter = router({
       const s = getStore();
       if (!input.email && !input.phone) throw new TRPCError({ code: "BAD_REQUEST", message: "Email or phone required" });
       const exists = s.users.find(
-        (u) => (input.email && u.email?.toLowerCase() === input.email.toLowerCase()) || (input.phone && u.phone === input.phone.replace(/\s/g, ""))
+        (u) => (input.email && u.email?.toLowerCase() === input.email.toLowerCase()) || (input.phone && phonesMatch(u.phone, input.phone))
       );
       if (exists) throw new TRPCError({ code: "CONFLICT", message: "An account with this email/phone already exists" });
 
@@ -62,7 +63,7 @@ export const authRouter = router({
       const user: UserRecord = {
         id: nextId("user"),
         email: input.email?.toLowerCase() ?? null,
-        phone: input.phone?.replace(/\s/g, "") ?? null,
+        phone: input.phone ? normalizePhone(input.phone) : null,
         name: input.name,
         role: input.role,
         language: input.language,

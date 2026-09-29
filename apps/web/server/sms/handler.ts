@@ -3,6 +3,7 @@
  * command against the live store, translates into the farmer's language and
  * fits the reply into ≤ 2 SMS segments. Used by POST /api/v1/sms/inbound.
  */
+import { phonesMatch } from "../auth/phone";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { SupportedLanguage } from "@agri-shield/types";
 import { audit, getStore } from "../data/store";
@@ -48,7 +49,8 @@ export function findFarmerByPhone(phone: string) {
   const s = getStore();
   const p = normalizePhone(phone);
   if (!p) return null;
-  const user = s.users.find((u) => u.phone && normalizePhone(u.phone) === p);
+  // Exact match first, then tolerant match (national vs international formats)
+  const user = s.users.find((u) => u.phone && normalizePhone(u.phone) === p) ?? s.users.find((u) => phonesMatch(u.phone, phone));
   if (!user) return null;
   const farmer = s.farmers.find((f) => f.userId === user.id) ?? null;
   return { user, farmer };

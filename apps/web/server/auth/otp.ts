@@ -3,6 +3,13 @@
  * Demo accounts (and DEMO_MODE) always accept 123456.
  */
 import { randomInt } from "node:crypto";
+import { isPhoneLike, phoneDigits } from "./phone";
+
+/** One key per person regardless of how the number/email was typed. */
+export function otpKey(identifier: string): string {
+  const raw = identifier.trim();
+  return isPhoneLike(raw) ? `tel:${phoneDigits(raw)}` : raw.toLowerCase();
+}
 
 interface OtpEntry {
   code: string;
@@ -18,12 +25,12 @@ const demoMode = () => process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 
 export function issueOtp(identifier: string): string {
   const code = demoMode() ? DEMO_OTP : String(randomInt(100000, 1000000));
-  otps.set(identifier.toLowerCase(), { code, expires: Date.now() + 10 * 60_000, attempts: 0 });
+  otps.set(otpKey(identifier), { code, expires: Date.now() + 10 * 60_000, attempts: 0 });
   return code;
 }
 
 export function verifyOtp(identifier: string, code: string): boolean {
-  const key = identifier.toLowerCase();
+  const key = otpKey(identifier);
   if ((demoMode() || key.endsWith("@demo.agrishield.io")) && code === DEMO_OTP) return true;
   const e = otps.get(key);
   if (!e || e.expires < Date.now() || e.attempts >= 5) return false;

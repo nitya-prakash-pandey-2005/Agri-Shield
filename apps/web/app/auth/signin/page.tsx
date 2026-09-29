@@ -57,7 +57,7 @@ function SignInForm() {
   const sendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     const id = identifier.trim();
-    const valid = id.includes("@") ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id) : /^\+?[0-9\s-]{7,20}$/.test(id);
+    const valid = id.includes("@") ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id) : /^\+?[0-9\s().-]{7,22}$/.test(id) && id.replace(/\D/g, "").length >= 7;
     if (!valid) return setFieldErr({ identifier: id.includes("@") ? t("auth.emailInvalid") : t("auth.phoneInvalid") });
     setFieldErr({});
     setBusy("otp");

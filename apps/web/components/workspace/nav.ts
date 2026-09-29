@@ -1,18 +1,30 @@
-import { Bell, Bot, Compass, FileText, HandHeart, Home, Landmark, Layers, Settings, ShieldCheck } from "lucide-react";
+import {
+  Activity, Bell, Bot, Code2, Compass, FileText, FlaskConical, Globe2, HandHeart, Home, Landmark, LayoutDashboard, Layers, Leaf, Radio, Satellite, Settings, ShieldCheck, Siren, Wheat,
+} from "lucide-react";
 import type { NavItem } from "@/components/hud/DashboardShell";
 
 /** Workspace navigation. Module owners may add badges but keep these routes stable. */
 export const WORKSPACE_NAV: NavItem[] = [
-  { href: "/app", label: "Home", icon: Home },
-  { href: "/app/explorer", label: "Risk Explorer", icon: Compass },
-  { href: "/app/portfolio", label: "Portfolio", icon: Layers },
-  { href: "/app/alerts", label: "Alerts & Rules", icon: Bell },
-  { href: "/app/insurance", label: "Insurance", icon: ShieldCheck },
-  { href: "/app/finance", label: "Lending & Finance", icon: Landmark },
-  { href: "/app/anticipatory", label: "Anticipatory Action", icon: HandHeart },
-  { href: "/app/reports", label: "Reports", icon: FileText },
-  { href: "/app/copilot", label: "Copilot", icon: Bot },
-  { href: "/app/settings", label: "Settings", icon: Settings },
+  { href: "/app", label: "Home", icon: Home, section: "Monitor" },
+  { href: "/app/twin", label: "Earth Twin", icon: Globe2, section: "Monitor" },
+  { href: "/app/explorer", label: "Risk Explorer", icon: Compass, section: "Monitor" },
+  { href: "/app/portfolio", label: "Portfolio", icon: Layers, section: "Monitor" },
+  { href: "/app/sensors", label: "Sensors & IoT", icon: Radio, section: "Monitor" },
+  { href: "/app/imagery", label: "Satellite Lab", icon: Satellite, section: "Monitor" },
+  { href: "/app/alerts", label: "Alerts & Rules", icon: Bell, section: "Respond" },
+  { href: "/app/incidents", label: "Incidents", icon: Siren, section: "Respond" },
+  { href: "/app/simulate", label: "Simulation Lab", icon: FlaskConical, section: "Respond" },
+  { href: "/app/anticipatory", label: "Anticipatory Action", icon: HandHeart, section: "Respond" },
+  { href: "/app/insurance", label: "Insurance", icon: ShieldCheck, section: "Industry" },
+  { href: "/app/finance", label: "Lending & Finance", icon: Landmark, section: "Industry" },
+  { href: "/app/yield", label: "Yield Forecast", icon: Wheat, section: "Industry" },
+  { href: "/app/sustainability", label: "Sustainability & Carbon", icon: Leaf, section: "Industry" },
+  { href: "/app/dashboards", label: "Dashboards", icon: LayoutDashboard, section: "Insights" },
+  { href: "/app/reports", label: "Reports", icon: FileText, section: "Insights" },
+  { href: "/app/copilot", label: "Copilot", icon: Bot, section: "Insights" },
+  { href: "/app/activity", label: "Activity", icon: Activity, section: "Insights" },
+  { href: "/app/developers", label: "Developers", icon: Code2, section: "Workspace" },
+  { href: "/app/settings", label: "Settings", icon: Settings, section: "Workspace" },
 ];
 
 /** The module each industry cares about most is lifted to sit right after Portfolio. */

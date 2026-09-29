@@ -23,6 +23,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   badge?: number | string;
+  /** Optional group heading; consecutive items with the same section render under one label */
+  section?: string;
 }
 
 const ACCENT_RGB = { emerald: "16 185 129", amber: "245 158 11", green: "34 197 94", violet: "139 92 246", cyan: "56 189 248" };
@@ -72,16 +74,19 @@ export function DashboardShell({
   const isActive = (href: string) => (href === nav[0]?.href ? pathname === href : pathname.startsWith(href));
 
   const sidebar = (
-    <nav className="flex flex-col gap-1 p-3">
-      {nav.map(({ href, label, icon: Icon, badge }) => {
+    <nav className="flex flex-col gap-0.5 p-3">
+      {nav.map(({ href, label, icon: Icon, badge, section }, i) => {
         const active = isActive(href);
+        const heading = section && section !== nav[i - 1]?.section ? section : null;
         return (
+          <div key={href}>
+          {heading && <div className={cn("hud-label px-3 pb-1", i === 0 ? "pt-0" : "pt-3")}>{heading}</div>}
           <Link
             key={href}
             href={href}
             onClick={() => setOpen(false)}
             className={cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               active ? "text-white" : "text-slate-400 hover:text-slate-100 hover:bg-white/[0.03]"
             )}
           >
@@ -99,6 +104,7 @@ export function DashboardShell({
               <span className="relative ml-auto rounded-full bg-rose-500/90 px-1.5 text-[10px] font-semibold text-white telemetry">{badge}</span>
             )}
           </Link>
+          </div>
         );
       })}
     </nav>
@@ -145,7 +151,7 @@ export function DashboardShell({
       </header>
 
       <div className="flex">
-        <aside className="hidden lg:block sticky top-14 h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-white/5 bg-[#070c1a]/70 no-print">
+        <aside className="hidden lg:block sticky top-14 h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-white/5 bg-[#070c1a]/70 no-print">
           {sidebar}
         </aside>
 
@@ -154,7 +160,7 @@ export function DashboardShell({
             <>
               <motion.div className="fixed inset-0 z-50 bg-black/60 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
               <motion.aside
-                className="fixed inset-y-0 left-0 z-50 w-72 border-r border-white/10 bg-[#070c1a] lg:hidden"
+                className="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-white/10 bg-[#070c1a] lg:hidden"
                 initial={{ x: -300 }}
                 animate={{ x: 0 }}
                 exit={{ x: -300 }}

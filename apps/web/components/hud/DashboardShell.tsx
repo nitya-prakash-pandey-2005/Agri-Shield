@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/rbac";
 import { useRealtime } from "@/hooks/useRealtime";
 import { LiveDot } from "./index";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export interface NavItem {
   href: string;
@@ -122,6 +123,7 @@ export function DashboardShell({
           <span className="hidden sm:inline hud-label border-l border-white/10 pl-3">{product}</span>
           <div className="ml-auto flex items-center gap-3">
             {topbarExtra}
+            <NotificationBell />
             <Clock />
             <LiveDot />
             {session?.user && (

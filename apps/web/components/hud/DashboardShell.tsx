@@ -24,7 +24,7 @@ export interface NavItem {
   badge?: number | string;
 }
 
-const ACCENT_RGB = { emerald: "16 185 129", amber: "245 158 11", green: "34 197 94", violet: "139 92 246" };
+const ACCENT_RGB = { emerald: "16 185 129", amber: "245 158 11", green: "34 197 94", violet: "139 92 246", cyan: "56 189 248" };
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);

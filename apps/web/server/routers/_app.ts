@@ -1,4 +1,10 @@
 import { router } from "../trpc";
+import { workspaceRouter } from "./workspace";
+import { explorerRouter } from "./explorer";
+import { portfolioRouter } from "./portfolio";
+import { insuranceRouter } from "./insurance";
+import { financeRouter } from "./finance";
+import { copilotRouter } from "./copilot";
 import { publicRouter } from "./public";
 import { authRouter } from "./auth";
 import { mlRouter } from "./ml";
@@ -16,6 +22,12 @@ export const appRouter = router({
   government: governmentRouter,
   supplyChain: supplyChainRouter,
   admin: adminRouter,
+  workspace: workspaceRouter,
+  explorer: explorerRouter,
+  portfolio: portfolioRouter,
+  insurance: insuranceRouter,
+  finance: financeRouter,
+  copilot: copilotRouter,
   billing: billingRouter,
 });
 

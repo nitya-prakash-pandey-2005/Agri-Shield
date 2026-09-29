@@ -50,7 +50,7 @@ const g = globalThis as unknown as { __agriBillingMeta?: Map<string, BillingMeta
 const meta = (g.__agriBillingMeta ??= new Map());
 export const leads = (g.__agriLeads ??= []);
 
-const PLAN_MRR: Record<SubscriptionPlan, number> = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499 };
+const PLAN_MRR: Record<SubscriptionPlan, number> = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499, business: 1490, enterprise: 4900 };
 
 export function providersAvailable() {
   return {

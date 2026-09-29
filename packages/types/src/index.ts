@@ -11,6 +11,8 @@ export type UserRole =
   | "national_admin"
   | "supply_chain_analyst"
   | "supply_chain_admin"
+  | "enterprise_analyst"
+  | "enterprise_admin"
   | "platform_admin";
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
@@ -22,7 +24,9 @@ export type SubscriptionPlan =
   | "farmer_pro"
   | "gov_basic"
   | "gov_enterprise"
-  | "supply_chain";
+  | "supply_chain"
+  | "business"
+  | "enterprise";
 export type SubscriptionStatus = "active" | "past_due" | "cancelled" | "trialing";
 export type CropType =
   | "rice"
@@ -67,6 +71,28 @@ export type SupplyChainRiskType =
   | "access_blocked"
   | "storage_damaged";
 export type RecommendationPriority = "low" | "medium" | "high" | "urgent";
+
+/** Industry a workspace (tenant organisation) operates in — drives default modules. */
+export type Industry =
+  | "government"
+  | "insurance"
+  | "banking"
+  | "agribusiness"
+  | "ngo"
+  | "cooperative";
+
+/** Kinds of assets a workspace can monitor anywhere on Earth. */
+export type AssetType =
+  | "farm"
+  | "field"
+  | "warehouse"
+  | "processing_plant"
+  | "port"
+  | "retail_outlet"
+  | "insured_plot"
+  | "loan"
+  | "community"
+  | "office";
 
 // ─── Geo Types ────────────────────────────────────────────────
 

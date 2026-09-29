@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { UserRole } from "@agri-shield/types";
 import { PERMISSIONS, PROTECTED_ROUTES, can, homeForRole, type Permission } from "@/lib/rbac";
 
-const ROLES: UserRole[] = ["farmer", "field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "platform_admin"];
+const ROLES: UserRole[] = ["farmer", "field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "enterprise_analyst", "enterprise_admin", "platform_admin"];
 
 // Expected matrix from spec §11 (+ portal-specific permissions)
 const MATRIX: Record<Permission, UserRole[]> = {
@@ -14,6 +14,9 @@ const MATRIX: Record<Permission, UserRole[]> = {
   view_supply_chain: ["supply_chain_analyst", "supply_chain_admin", "platform_admin"],
   manage_integrations: ["supply_chain_admin", "platform_admin"],
   access_admin_panel: ["platform_admin"],
+  use_workspace: ["field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "enterprise_analyst", "enterprise_admin", "platform_admin"],
+  manage_workspace: ["national_admin", "supply_chain_admin", "enterprise_admin", "platform_admin"],
+  manage_assets: ["field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "enterprise_analyst", "enterprise_admin", "platform_admin"],
 };
 
 describe("RBAC permissions matrix", () => {

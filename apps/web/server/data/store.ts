@@ -11,6 +11,7 @@
  */
 import type {
   AlertChannel,
+  Industry,
   AlertSeverity,
   AlertType,
   CropType,
@@ -27,6 +28,21 @@ import type {
 } from "@agri-shield/types";
 import { COUNTRIES, DISTRICTS, countryByCode, type DistrictDef } from "./geography";
 import { between, blobPolygon, fieldPolygon, intBetween, makeId, mulberry32, pick, round } from "./prng";
+import {
+  ENTERPRISE_ORGS,
+  ENTERPRISE_USERS,
+  INDUSTRY_BY_ORG,
+  seedAlertRules,
+  seedAssets,
+  seedNotifications,
+  type AlertRuleRecord,
+  type AssetRecord,
+  type NotificationRecord,
+  type WorkspaceSettings,
+  type WorkspaceUsage,
+} from "./seed-assets";
+
+export type { AlertRuleRecord, AssetRecord, AssetAssessment, NotificationRecord, RuleMetric, WorkspaceSettings, WorkspaceUsage } from "./seed-assets";
 
 // ─── Record types ─────────────────────────────────────────────────────────
 
@@ -44,18 +60,25 @@ export interface UserRecord {
   lastActive: Date;
   /** demo-only; real deployments use Supabase Auth */
   password?: string;
+  /** Job title shown in workspace team lists */
+  title?: string;
 }
 
 export interface OrgRecord {
   id: string;
   name: string;
   shortName: string;
-  type: "government" | "supply_chain" | "ngo";
+  type: "government" | "supply_chain" | "ngo" | "insurance" | "bank" | "cooperative";
   country: string;
   region: string | null;
   verified: boolean;
   planTier: SubscriptionPlan;
   createdAt: Date;
+  /** Multi-tenant workspace fields */
+  industry?: Industry;
+  settings?: WorkspaceSettings;
+  usage?: WorkspaceUsage;
+  trialEndsAt?: Date | null;
 }
 
 export interface DistrictRecord extends DistrictDef {
@@ -315,6 +338,10 @@ export interface Store {
   audit: AuditRecord[];
   flags: FeatureFlagRecord[];
   subscriptions: SubscriptionRecord[];
+  /** Multi-tenant SaaS layer */
+  assets: AssetRecord[];
+  alertRules: AlertRuleRecord[];
+  notifications: NotificationRecord[];
   counters: Record<string, number>;
   /** Live = pure observations. Scenarios inject a stress event on top of live data for drills/demos. */
   scenario: { mode: ScenarioMode; intensity: number; setAt: Date; setBy: string };
@@ -376,7 +403,31 @@ function seed(): Store {
     { id: "org-sc-mekongfoods", name: "Mekong Fresh Foods JSC", shortName: "MekongFoods", type: "supply_chain", country: "Vietnam", region: "Mekong Delta", verified: true, planTier: "supply_chain", createdAt: new Date(now.getTime() - 120 * DAY) },
     { id: "org-ngo-brac", name: "Delta Resilience Foundation", shortName: "DRF", type: "ngo", country: "Bangladesh", region: "Coastal Belt", verified: false, planTier: "gov_basic", createdAt: new Date(now.getTime() - 4 * DAY) },
     { id: "org-gov-lk", name: "Sri Lanka Dept. of Agriculture", shortName: "DOA-LK", type: "government", country: "Sri Lanka", region: "Northern Province", verified: false, planTier: "gov_basic", createdAt: new Date(now.getTime() - 2 * DAY) },
+    ...ENTERPRISE_ORGS.map((o) => ({ id: o.id, name: o.name, shortName: o.shortName, type: o.type, country: o.country, region: o.region, verified: true, planTier: o.planTier, createdAt: new Date(now.getTime() - intBetween(rng, 60, 500) * DAY) })),
   );
+  // Workspace settings for every tenant
+  const COUNTRY_TZ: Record<string, [string, string, string]> = {
+    Bangladesh: ["Asia/Dhaka", "BDT", "en-BD"], Vietnam: ["Asia/Ho_Chi_Minh", "VND", "vi-VN"], Philippines: ["Asia/Manila", "PHP", "en-PH"],
+    India: ["Asia/Kolkata", "INR", "en-IN"], Indonesia: ["Asia/Jakarta", "IDR", "id-ID"], Singapore: ["Asia/Singapore", "USD", "en-SG"], "Sri Lanka": ["Asia/Colombo", "LKR", "en-LK"],
+  };
+  for (const o of orgs) {
+    const ent = ENTERPRISE_ORGS.find((e) => e.id === o.id);
+    const [tz, cur, loc] = COUNTRY_TZ[o.country] ?? ["UTC", "USD", "en-US"];
+    const c = COUNTRIES.find((x) => x.name === o.country);
+    o.industry = INDUSTRY_BY_ORG[o.id] ?? (o.type === "government" ? "government" : o.type === "ngo" ? "ngo" : "agribusiness");
+    o.settings = {
+      units: "metric",
+      timezone: ent?.timezone ?? tz,
+      currency: ent?.currency ?? cur,
+      locale: ent?.locale ?? loc,
+      defaultCenter: ent?.center ?? c?.center ?? [15, 100],
+      defaultZoom: ent?.zoom ?? (c ? 7 : 4),
+      riskThreshold: 60,
+      weeklyDigest: true,
+    };
+    o.usage = { periodStart: new Date(now.getFullYear(), now.getMonth(), 1), assessments: intBetween(rng, 400, 9000), apiCalls: intBetween(rng, 1000, 60000), reports: intBetween(rng, 2, 40), messages: intBetween(rng, 50, 4000) };
+    o.trialEndsAt = null;
+  }
 
   // Districts
   const months = ["Jun", "Jul", "Aug", "Sep", "Oct"];
@@ -432,6 +483,24 @@ function seed(): Store {
     { id: "user-officer-barisal", email: "officer.barisal@demo.agrishield.io", phone: null, name: "Md. Kamrul Hasan", role: "field_officer", language: "bn", orgId: "org-gov-bd", subscriptionTier: "gov_enterprise", status: "active", createdAt: new Date(now.getTime() - 150 * DAY), lastActive: new Date(now.getTime() - 3 * HOUR), password: "demo2026" },
     { id: "user-regional-khulna", email: "regional.khulna@demo.agrishield.io", phone: null, name: "Nusrat Jahan", role: "regional_admin", language: "bn", orgId: "org-gov-bd", subscriptionTier: "gov_enterprise", status: "active", createdAt: new Date(now.getTime() - 140 * DAY), lastActive: new Date(now.getTime() - 26 * HOUR), password: "demo2026" },
   ];
+  for (const u of ENTERPRISE_USERS) {
+    const org = ENTERPRISE_ORGS.find((o) => o.id === u.orgId);
+    users.push({
+      id: u.id,
+      email: u.email,
+      phone: null,
+      name: u.name,
+      title: u.title,
+      role: u.role,
+      language: u.language,
+      orgId: u.orgId,
+      subscriptionTier: org?.planTier ?? "business",
+      status: "active",
+      createdAt: new Date(now.getTime() - intBetween(rng, 60, 400) * DAY),
+      lastActive: new Date(now.getTime() - intBetween(rng, 1, 48) * HOUR),
+      password: "demo2026",
+    });
+  }
   for (const c of COUNTRIES.filter((c) => c.code !== "BD")) {
     users.push({
       id: `user-gov-${c.code.toLowerCase()}`,
@@ -830,7 +899,7 @@ function seed(): Store {
     { key: "referral_rewards", description: "Farmer referral → Pro unlocks", enabled: true, rolloutPct: 100 },
   ];
 
-  const PLAN_MRR: Record<SubscriptionPlan, number> = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499 };
+  const PLAN_MRR: Record<SubscriptionPlan, number> = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499, business: 1490, enterprise: 4900 };
   const subscriptions: SubscriptionRecord[] = [
     ...users.filter((u) => u.role === "farmer").map((u) => ({ id: id("sub"), userId: u.id, orgId: null, plan: u.subscriptionTier, status: (rng() > 0.93 ? "past_due" : "active") as SubscriptionRecord["status"], mrrUsd: PLAN_MRR[u.subscriptionTier], currentPeriodEnd: new Date(now.getTime() + intBetween(rng, 1, 30) * DAY), provider: (u.subscriptionTier === "free" ? "none" : "razorpay") as SubscriptionRecord["provider"] })),
     ...orgs.map((o) => ({ id: id("sub"), userId: null, orgId: o.id, plan: o.planTier, status: (o.verified ? "active" : "trialing") as SubscriptionRecord["status"], mrrUsd: o.verified ? PLAN_MRR[o.planTier] : 0, currentPeriodEnd: new Date(now.getTime() + intBetween(rng, 1, 30) * DAY), provider: (o.country === "Philippines" ? "paymongo" : "stripe") as SubscriptionRecord["provider"] })),
@@ -856,6 +925,9 @@ function seed(): Store {
     audit,
     flags,
     subscriptions,
+    assets: seedAssets(rng, districts, nodes, now),
+    alertRules: seedAlertRules(now),
+    notifications: seedNotifications(now),
     counters: { n, farmersProtectedToday: 15_284, smsSentToday: 3_912 },
     scenario: { mode: (process.env.AGRI_SCENARIO as ScenarioMode) || "live", intensity: 0.7, setAt: now, setBy: "system" },
   };

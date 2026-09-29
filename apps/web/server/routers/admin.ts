@@ -17,7 +17,7 @@ import { normalizePhone } from "../sms/commands";
 
 const proc = permitted("access_admin_panel");
 
-const ROLES = ["farmer", "field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "platform_admin"] as const satisfies readonly UserRole[];
+const ROLES = ["farmer", "field_officer", "regional_admin", "national_admin", "supply_chain_analyst", "supply_chain_admin", "enterprise_analyst", "enterprise_admin", "platform_admin"] as const satisfies readonly UserRole[];
 const SCENARIOS = ["live", "monsoon_surge", "cyclone_landfall", "dry_season_salinity"] as const satisfies readonly ScenarioMode[];
 
 type Actor = { id: string; name: string };
@@ -213,7 +213,7 @@ export const adminRouter = router({
         const o = s.orgs.find((x) => x.id === input.id);
         if (!o) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
         const sub = s.subscriptions.find((x) => x.orgId === o.id);
-        const PLAN_MRR = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499 } as const;
+        const PLAN_MRR = { free: 0, farmer_pro: 3, gov_basic: 299, gov_enterprise: 2400, supply_chain: 499, business: 1490, enterprise: 4900 } as const;
         if (input.decision === "verify") {
           o.verified = true;
           orgReviews.set(o.id, { decision: "verified", note: input.note ?? null, by: ctx.user.name ?? ctx.user.id, at: new Date() });

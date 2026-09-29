@@ -1,0 +1,4 @@
+data/raw/
+model_weights/*.joblib
+model_weights/archive/
+data/cache/

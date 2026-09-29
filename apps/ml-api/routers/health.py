@@ -1,30 +1,49 @@
-from fastapi import APIRouter
-from datetime import datetime
+"""
+Health endpoints — Agri-SHIELD ML API
+``GET /health`` and ``GET /health/`` return {status, version, models_loaded, uptime_s}.
+"""
 import sys
+import time
+from datetime import datetime, timezone
+
+from fastapi import APIRouter
+
+from config import settings
+from models.registry import registry
 
 router = APIRouter()
 
+
+def _payload() -> dict:
+    return {
+        "status": "healthy" if registry.ready else "degraded",
+        "version": settings.version,
+        "models_loaded": registry.models_loaded(),
+        "uptime_s": round(time.monotonic() - registry.started, 1),
+        "model_status": registry.status,
+        "model_versions": {
+            "flood": getattr(registry.flood, "version", None),
+            "salinity": getattr(registry.salinity, "version", None),
+        },
+        "service": "Agri-SHIELD ML API",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "python_version": sys.version.split()[0],
+    }
+
+
+@router.get("")
 @router.get("/")
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": "Agri-SHIELD ML API",
-        "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat(),
-        "python_version": sys.version,
-        "checks": {
-            "weather_api": "open-meteo (free, no key)",
-            "soil_api": "soilgrids-v2 (free, no key)",
-            "model_engine": "domain-formula-v1.0",
-        },
-    }
+    return _payload()
+
 
 @router.get("/ready")
 async def readiness():
-    """Kubernetes readiness probe."""
-    return {"ready": True}
+    """Readiness probe: true once trained models are serving (formula fallback before that)."""
+    return {"ready": registry.ready, "model_status": registry.status}
+
 
 @router.get("/live")
 async def liveness():
-    """Kubernetes liveness probe."""
+    """Liveness probe."""
     return {"alive": True}

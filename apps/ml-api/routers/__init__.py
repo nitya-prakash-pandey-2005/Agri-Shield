@@ -5,6 +5,7 @@ from .supply_chain import router as supply_chain
 from .alerts import router as alerts
 from .weather import router as weather
 from .health import router as health
+from .ml import router as ml
 
 __all__ = [
     "flood_risk",
@@ -14,4 +15,5 @@ __all__ = [
     "alerts",
     "weather",
     "health",
+    "ml",
 ]

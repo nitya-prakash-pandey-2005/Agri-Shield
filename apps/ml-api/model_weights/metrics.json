@@ -1,0 +1,276 @@
+{
+  "deployed": {
+    "flood": {
+      "name": "flood-ensemble (temporal-MLP + HistGBM)",
+      "version": "v2.2.0",
+      "auc": 0.9692,
+      "f1": 0.7562,
+      "brier": 0.0361,
+      "rmse": 0.1077,
+      "r2": 0.5491,
+      "trained_at": "2026-09-29T00:14:09Z",
+      "drift_psi": 0.0122,
+      "samples": 56188,
+      "details": {
+        "test": {
+          "y1": {
+            "brier": 0.0222,
+            "f1": 0.8113,
+            "positive_rate": 0.0839,
+            "auc": 0.9819
+          },
+          "y2": {
+            "brier": 0.0296,
+            "f1": 0.7767,
+            "positive_rate": 0.0996,
+            "auc": 0.973
+          },
+          "y3": {
+            "brier": 0.0361,
+            "f1": 0.7562,
+            "positive_rate": 0.1136,
+            "auc": 0.9692
+          }
+        },
+        "val": {
+          "y1": {
+            "brier": 0.013,
+            "f1": 0.7473,
+            "positive_rate": 0.0387,
+            "auc": 0.9842
+          },
+          "y2": {
+            "brier": 0.017,
+            "f1": 0.7376,
+            "positive_rate": 0.0483,
+            "auc": 0.9813
+          },
+          "y3": {
+            "brier": 0.0208,
+            "f1": 0.7222,
+            "positive_rate": 0.0564,
+            "auc": 0.9782
+          }
+        },
+        "components_test": {
+          "y1": {
+            "temporal_mlp_auc": 0.9745,
+            "hist_gbm_auc": 0.9878
+          },
+          "y2": {
+            "temporal_mlp_auc": 0.9663,
+            "hist_gbm_auc": 0.9805
+          },
+          "y3": {
+            "temporal_mlp_auc": 0.9621,
+            "hist_gbm_auc": 0.9736
+          }
+        },
+        "baselines_test": {
+          "y1": {
+            "persistence_auc": 0.8905
+          },
+          "y2": {
+            "persistence_auc": 0.8367
+          },
+          "y3": {
+            "persistence_auc": 0.7996
+          }
+        },
+        "onset_test_y3": {
+          "brier": 0.0295,
+          "f1": 0.4017,
+          "positive_rate": 0.0466,
+          "auc": 0.9357
+        },
+        "depth": {
+          "rmse": 0.1077,
+          "r2": 0.5491
+        },
+        "drift_psi": 0.0122,
+        "weights_mlp": {
+          "y1": 0.3,
+          "y2": 0.3,
+          "y3": 0.4
+        },
+        "samples": {
+          "train": 32142,
+          "val": 8030,
+          "test": 16016,
+          "total": 56188
+        },
+        "split": {
+          "train": "2019-01-01..2022-12-31",
+          "val": "2023",
+          "test": "2024-01-01..2025-12-31"
+        },
+        "train_seconds": {
+          "gbm": 14.7,
+          "mlp": 7.7,
+          "total": 33.6
+        }
+      }
+    },
+    "salinity": {
+      "name": "salinity-histgbm (EC 0/7/30/90 d)",
+      "version": "v1.6.0",
+      "rmse": 1.0273,
+      "r2": 0.8688,
+      "trained_at": "2026-09-29T00:14:23Z",
+      "drift_psi": 0.011,
+      "samples": 56254,
+      "details": {
+        "test": {
+          "h0": {
+            "rmse": 0.6581,
+            "mae": 0.3632,
+            "r2": 0.945,
+            "within_10pct": 0.3888,
+            "within_20pct": 0.6696,
+            "class_accuracy": 0.9046,
+            "n": 16082
+          },
+          "h7": {
+            "rmse": 0.7114,
+            "mae": 0.3807,
+            "r2": 0.9361,
+            "within_10pct": 0.3925,
+            "within_20pct": 0.6676,
+            "class_accuracy": 0.8992,
+            "n": 15928
+          },
+          "h30": {
+            "rmse": 1.0273,
+            "mae": 0.5347,
+            "r2": 0.8688,
+            "within_10pct": 0.3379,
+            "within_20pct": 0.5792,
+            "class_accuracy": 0.8546,
+            "n": 15422
+          },
+          "h90": {
+            "rmse": 1.441,
+            "mae": 0.6913,
+            "r2": 0.7075,
+            "within_10pct": 0.3041,
+            "within_20pct": 0.5204,
+            "class_accuracy": 0.8147,
+            "n": 14102
+          }
+        },
+        "val": {
+          "h0": {
+            "rmse": 0.7751,
+            "mae": 0.4235,
+            "r2": 0.9229,
+            "within_10pct": 0.4113,
+            "within_20pct": 0.7067,
+            "class_accuracy": 0.8837,
+            "n": 8030
+          },
+          "h7": {
+            "rmse": 0.8684,
+            "mae": 0.4558,
+            "r2": 0.9031,
+            "within_10pct": 0.423,
+            "within_20pct": 0.7072,
+            "class_accuracy": 0.8757,
+            "n": 8030
+          },
+          "h30": {
+            "rmse": 1.3109,
+            "mae": 0.6693,
+            "r2": 0.7794,
+            "within_10pct": 0.3437,
+            "within_20pct": 0.5948,
+            "class_accuracy": 0.8188,
+            "n": 8030
+          },
+          "h90": {
+            "rmse": 1.7472,
+            "mae": 0.9137,
+            "r2": 0.6494,
+            "within_10pct": 0.3115,
+            "within_20pct": 0.5217,
+            "class_accuracy": 0.7648,
+            "n": 8030
+          }
+        },
+        "drift_psi": 0.011,
+        "samples": {
+          "train": 32142,
+          "val": 8030,
+          "test": 16082,
+          "total": 56254
+        },
+        "class_precision_30d": {
+          "safe": 0.948,
+          "sensitive": 0.532,
+          "moderate": 0.707,
+          "severe": 0.687
+        },
+        "train_seconds": 12.3
+      }
+    }
+  },
+  "dataset": {
+    "built_at": "2026-09-29T00:04:17Z",
+    "period": [
+      "2019-01-01",
+      "2025-12-31"
+    ],
+    "sources": {
+      "weather": "Open-Meteo Historical Weather API (ERA5/ERA5-Land, Copernicus C3S), CC BY 4.0",
+      "discharge": "Open-Meteo Flood API (Copernicus GloFAS v4 reanalysis), CC BY 4.0",
+      "sea_level": "Open-Meteo Marine API sea_level_height_msl (2025), CC BY 4.0",
+      "elevation": "Open-Meteo Elevation API (Copernicus GLO-90), CC BY 4.0",
+      "soil": "ISRIC SoilGrids 2.0 clay 0-5 cm, CC BY 4.0",
+      "coastline": "Natural Earth 1:10m coastline, public domain"
+    },
+    "open_meteo_calls_used": 9161.0
+  },
+  "history": [
+    {
+      "seed": 7,
+      "refresh": null,
+      "flood": {
+        "candidate_version": "v2.2.0",
+        "candidate_auc": 0.9722,
+        "deployed_version": "v2.1.0",
+        "deployed_auc": 0.9719,
+        "promoted": true
+      },
+      "salinity": {
+        "candidate_version": "v1.6.0",
+        "candidate_rmse": 1.0273,
+        "deployed_version": "v1.5.0",
+        "deployed_rmse": 1.0617,
+        "promoted": true
+      },
+      "decision": "promoted",
+      "duration_s": 60.6,
+      "at": "2026-09-29T00:14:35Z"
+    },
+    {
+      "seed": 7,
+      "refresh": null,
+      "flood": {
+        "candidate_version": "v2.3.0",
+        "candidate_auc": 0.9722,
+        "deployed_version": "v2.2.0",
+        "deployed_auc": 0.9722,
+        "promoted": false
+      },
+      "salinity": {
+        "candidate_version": "v1.7.0",
+        "candidate_rmse": 1.0273,
+        "deployed_version": "v1.6.0",
+        "deployed_rmse": 1.0273,
+        "promoted": false
+      },
+      "decision": "kept_deployed",
+      "duration_s": 32.8,
+      "at": "2026-09-29T00:15:17Z"
+    }
+  ]
+}

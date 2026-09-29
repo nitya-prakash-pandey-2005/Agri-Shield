@@ -1,0 +1,583 @@
+{
+  "built_at": "2026-09-29T00:04:17Z",
+  "period": [
+    "2019-01-01",
+    "2025-12-31"
+  ],
+  "sources": {
+    "weather": "Open-Meteo Historical Weather API (ERA5/ERA5-Land, Copernicus C3S), CC BY 4.0",
+    "discharge": "Open-Meteo Flood API (Copernicus GloFAS v4 reanalysis), CC BY 4.0",
+    "sea_level": "Open-Meteo Marine API sea_level_height_msl (2025), CC BY 4.0",
+    "elevation": "Open-Meteo Elevation API (Copernicus GLO-90), CC BY 4.0",
+    "soil": "ISRIC SoilGrids 2.0 clay 0-5 cm, CC BY 4.0",
+    "coastline": "Natural Earth 1:10m coastline, public domain"
+  },
+  "open_meteo_calls_used": 9161.0,
+  "sites": {
+    "bd-barisal": {
+      "id": "bd-barisal",
+      "name": "Barisal",
+      "country": "BD",
+      "lat": 22.7011,
+      "lon": 90.3637,
+      "elevation_m": 6.0,
+      "coast_km": 6.08,
+      "coast_km_reference": 62,
+      "flood_exposure": 0.78,
+      "salinity_exposure": 0.52,
+      "glofas_cell": {
+        "lat": 22.725006,
+        "lon": 90.42502,
+        "mean_q_wet": 30.77
+      },
+      "sea": {
+        "lat": 22.875,
+        "lon": 90.625015,
+        "distance_km": 33.0,
+        "tidal_range_m": 3.071,
+        "spring_range_m": 4.077,
+        "mean_high_water_m": 2.478
+      },
+      "clay_pct": null
+    },
+    "bd-khulna": {
+      "id": "bd-khulna",
+      "name": "Khulna",
+      "country": "BD",
+      "lat": 22.8456,
+      "lon": 89.5403,
+      "elevation_m": 7.0,
+      "coast_km": 57.35,
+      "coast_km_reference": 38,
+      "flood_exposure": 0.84,
+      "salinity_exposure": 0.88,
+      "glofas_cell": {
+        "lat": 22.775002,
+        "lon": 89.525024,
+        "mean_q_wet": 285.37
+      },
+      "sea": {
+        "lat": 22.125,
+        "lon": 89.95836,
+        "distance_km": 90.9,
+        "tidal_range_m": 2.1,
+        "spring_range_m": 2.82,
+        "mean_high_water_m": 1.897
+      },
+      "clay_pct": null
+    },
+    "bd-satkhira": {
+      "id": "bd-satkhira",
+      "name": "Satkhira",
+      "country": "BD",
+      "lat": 22.7185,
+      "lon": 89.0705,
+      "elevation_m": 8.0,
+      "coast_km": 62.85,
+      "coast_km_reference": 22,
+      "flood_exposure": 0.72,
+      "salinity_exposure": 0.93,
+      "glofas_cell": {
+        "lat": 22.675003,
+        "lon": 89.07501,
+        "mean_q_wet": 13.76
+      },
+      "sea": {
+        "lat": 22.125,
+        "lon": 89.95836,
+        "distance_km": 112.6,
+        "tidal_range_m": 2.1,
+        "spring_range_m": 2.82,
+        "mean_high_water_m": 1.897
+      },
+      "clay_pct": null
+    },
+    "bd-patuakhali": {
+      "id": "bd-patuakhali",
+      "name": "Patuakhali",
+      "country": "BD",
+      "lat": 22.3596,
+      "lon": 90.3299,
+      "elevation_m": 5.0,
+      "coast_km": 10.34,
+      "coast_km_reference": 18,
+      "flood_exposure": 0.86,
+      "salinity_exposure": 0.81,
+      "glofas_cell": {
+        "lat": 22.325005,
+        "lon": 90.32501,
+        "mean_q_wet": 11.21
+      },
+      "sea": {
+        "lat": 22.125,
+        "lon": 90.45836,
+        "distance_km": 29.2,
+        "tidal_range_m": 2.14,
+        "spring_range_m": 2.91,
+        "mean_high_water_m": 1.913
+      },
+      "clay_pct": 28.3
+    },
+    "bd-sylhet": {
+      "id": "bd-sylhet",
+      "name": "Sylhet",
+      "country": "BD",
+      "lat": 24.8949,
+      "lon": 91.8687,
+      "elevation_m": 20.0,
+      "coast_km": 190.06,
+      "coast_km_reference": 310,
+      "flood_exposure": 0.69,
+      "salinity_exposure": 0.05,
+      "glofas_cell": {
+        "lat": 24.875,
+        "lon": 91.82501,
+        "mean_q_wet": 29.41
+      },
+      "sea": null,
+      "clay_pct": null
+    },
+    "vn-cantho": {
+      "id": "vn-cantho",
+      "name": "Cần Thơ",
+      "country": "VN",
+      "lat": 10.0452,
+      "lon": 105.7469,
+      "elevation_m": 4.0,
+      "coast_km": 8.92,
+      "coast_km_reference": 75,
+      "flood_exposure": 0.64,
+      "salinity_exposure": 0.55,
+      "glofas_cell": {
+        "lat": 10.025002,
+        "lon": 105.775024,
+        "mean_q_wet": 32461.63
+      },
+      "sea": {
+        "lat": 9.625,
+        "lon": 106.375015,
+        "distance_km": 83.2,
+        "tidal_range_m": 2.957,
+        "spring_range_m": 3.841,
+        "mean_high_water_m": 2.013
+      },
+      "clay_pct": 37.2
+    },
+    "vn-bentre": {
+      "id": "vn-bentre",
+      "name": "Bến Tre",
+      "country": "VN",
+      "lat": 10.2434,
+      "lon": 106.3756,
+      "elevation_m": 6.0,
+      "coast_km": 3.06,
+      "coast_km_reference": 25,
+      "flood_exposure": 0.58,
+      "salinity_exposure": 0.94,
+      "glofas_cell": {
+        "lat": 10.225006,
+        "lon": 106.42502,
+        "mean_q_wet": 17.46
+      },
+      "sea": {
+        "lat": 9.875,
+        "lon": 106.625015,
+        "distance_km": 49.2,
+        "tidal_range_m": 2.785,
+        "spring_range_m": 3.62,
+        "mean_high_water_m": 1.927
+      },
+      "clay_pct": null
+    },
+    "vn-soctrang": {
+      "id": "vn-soctrang",
+      "name": "Sóc Trăng",
+      "country": "VN",
+      "lat": 9.6025,
+      "lon": 105.9739,
+      "elevation_m": 9.0,
+      "coast_km": 16.45,
+      "coast_km_reference": 30,
+      "flood_exposure": 0.55,
+      "salinity_exposure": 0.86,
+      "glofas_cell": {
+        "lat": 9.625,
+        "lon": 105.975006,
+        "mean_q_wet": 21.29
+      },
+      "sea": {
+        "lat": 9.625,
+        "lon": 106.375015,
+        "distance_km": 44.0,
+        "tidal_range_m": 2.957,
+        "spring_range_m": 3.841,
+        "mean_high_water_m": 2.013
+      },
+      "clay_pct": null
+    },
+    "vn-camau": {
+      "id": "vn-camau",
+      "name": "Cà Mau",
+      "country": "VN",
+      "lat": 9.1769,
+      "lon": 105.1524,
+      "elevation_m": 7.0,
+      "coast_km": 34.48,
+      "coast_km_reference": 15,
+      "flood_exposure": 0.61,
+      "salinity_exposure": 0.91,
+      "glofas_cell": {
+        "lat": 9.175003,
+        "lon": 105.225006,
+        "mean_q_wet": 17.72
+      },
+      "sea": {
+        "lat": 8.958336,
+        "lon": 105.45836,
+        "distance_km": 41.5,
+        "tidal_range_m": 2.949,
+        "spring_range_m": 3.794,
+        "mean_high_water_m": 2.057
+      },
+      "clay_pct": null
+    },
+    "vn-angiang": {
+      "id": "vn-angiang",
+      "name": "An Giang",
+      "country": "VN",
+      "lat": 10.5216,
+      "lon": 105.1259,
+      "elevation_m": 3.0,
+      "coast_km": 49.03,
+      "coast_km_reference": 140,
+      "flood_exposure": 0.81,
+      "salinity_exposure": 0.18,
+      "glofas_cell": {
+        "lat": 10.525002,
+        "lon": 105.07501,
+        "mean_q_wet": 9.94
+      },
+      "sea": {
+        "lat": 10.041664,
+        "lon": 104.95836,
+        "distance_km": 56.4,
+        "tidal_range_m": 0.656,
+        "spring_range_m": 0.93,
+        "mean_high_water_m": 1.226
+      },
+      "clay_pct": 35.7
+    },
+    "ph-pampanga": {
+      "id": "ph-pampanga",
+      "name": "Pampanga",
+      "country": "PH",
+      "lat": 15.0794,
+      "lon": 120.62,
+      "elevation_m": 43.0,
+      "coast_km": 19.96,
+      "coast_km_reference": 20,
+      "flood_exposure": 0.82,
+      "salinity_exposure": 0.34,
+      "glofas_cell": {
+        "lat": 15.075005,
+        "lon": 120.67502,
+        "mean_q_wet": 17.62
+      },
+      "sea": {
+        "lat": 14.791664,
+        "lon": 120.625015,
+        "distance_km": 32.0,
+        "tidal_range_m": 1.117,
+        "spring_range_m": 1.587,
+        "mean_high_water_m": 1.368
+      },
+      "clay_pct": 35.6
+    },
+    "ph-bulacan": {
+      "id": "ph-bulacan",
+      "name": "Bulacan",
+      "country": "PH",
+      "lat": 14.7943,
+      "lon": 120.8799,
+      "elevation_m": 5.0,
+      "coast_km": 5.81,
+      "coast_km_reference": 12,
+      "flood_exposure": 0.77,
+      "salinity_exposure": 0.41,
+      "glofas_cell": {
+        "lat": 14.725006,
+        "lon": 120.875,
+        "mean_q_wet": 70.89
+      },
+      "sea": {
+        "lat": 14.708336,
+        "lon": 120.79167,
+        "distance_km": 13.5,
+        "tidal_range_m": 1.108,
+        "spring_range_m": 1.57,
+        "mean_high_water_m": 1.363
+      },
+      "clay_pct": null
+    },
+    "ph-nuevaecija": {
+      "id": "ph-nuevaecija",
+      "name": "Nueva Ecija",
+      "country": "PH",
+      "lat": 15.5784,
+      "lon": 121.1113,
+      "elevation_m": 61.0,
+      "coast_km": 37.26,
+      "coast_km_reference": 95,
+      "flood_exposure": 0.59,
+      "salinity_exposure": 0.04,
+      "glofas_cell": {
+        "lat": 15.575005,
+        "lon": 121.07501,
+        "mean_q_wet": 127.81
+      },
+      "sea": {
+        "lat": 15.291664,
+        "lon": 121.45836,
+        "distance_km": 49.0,
+        "tidal_range_m": 1.325,
+        "spring_range_m": 1.79,
+        "mean_high_water_m": 1.446
+      },
+      "clay_pct": 38.1
+    },
+    "ph-tarlac": {
+      "id": "ph-tarlac",
+      "name": "Tarlac",
+      "country": "PH",
+      "lat": 15.4755,
+      "lon": 120.5963,
+      "elevation_m": 43.0,
+      "coast_km": 63.69,
+      "coast_km_reference": 70,
+      "flood_exposure": 0.52,
+      "salinity_exposure": 0.03,
+      "glofas_cell": {
+        "lat": 15.475006,
+        "lon": 120.525024,
+        "mean_q_wet": 99.9
+      },
+      "sea": {
+        "lat": 14.791664,
+        "lon": 120.625015,
+        "distance_km": 76.1,
+        "tidal_range_m": 1.117,
+        "spring_range_m": 1.587,
+        "mean_high_water_m": 1.368
+      },
+      "clay_pct": null
+    },
+    "in-kendrapara": {
+      "id": "in-kendrapara",
+      "name": "Kendrapara",
+      "country": "IN",
+      "lat": 20.5,
+      "lon": 86.4167,
+      "elevation_m": 8.0,
+      "coast_km": 32.96,
+      "coast_km_reference": 20,
+      "flood_exposure": 0.83,
+      "salinity_exposure": 0.77,
+      "glofas_cell": {
+        "lat": 20.525002,
+        "lon": 86.475006,
+        "mean_q_wet": 23.74
+      },
+      "sea": {
+        "lat": 20.375,
+        "lon": 86.79167,
+        "distance_km": 41.5,
+        "tidal_range_m": 1.496,
+        "spring_range_m": 2.047,
+        "mean_high_water_m": 1.49
+      },
+      "clay_pct": null
+    },
+    "in-jagatsinghpur": {
+      "id": "in-jagatsinghpur",
+      "name": "Jagatsinghpur",
+      "country": "IN",
+      "lat": 20.2549,
+      "lon": 86.1706,
+      "elevation_m": 15.0,
+      "coast_km": 12.49,
+      "coast_km_reference": 18,
+      "flood_exposure": 0.79,
+      "salinity_exposure": 0.72,
+      "glofas_cell": {
+        "lat": 20.325005,
+        "lon": 86.17502,
+        "mean_q_wet": 6.12
+      },
+      "sea": {
+        "lat": 19.875,
+        "lon": 86.20836,
+        "distance_km": 42.4,
+        "tidal_range_m": 1.346,
+        "spring_range_m": 1.847,
+        "mean_high_water_m": 1.388
+      },
+      "clay_pct": 36.4
+    },
+    "in-balasore": {
+      "id": "in-balasore",
+      "name": "Balasore",
+      "country": "IN",
+      "lat": 21.4942,
+      "lon": 86.9317,
+      "elevation_m": 18.0,
+      "coast_km": 11.5,
+      "coast_km_reference": 16,
+      "flood_exposure": 0.71,
+      "salinity_exposure": 0.58,
+      "glofas_cell": {
+        "lat": 21.475006,
+        "lon": 86.92502,
+        "mean_q_wet": 161.18
+      },
+      "sea": {
+        "lat": 21.375,
+        "lon": 87.125015,
+        "distance_km": 24.0,
+        "tidal_range_m": 2.695,
+        "spring_range_m": 3.667,
+        "mean_high_water_m": 2.097
+      },
+      "clay_pct": null
+    },
+    "in-puri": {
+      "id": "in-puri",
+      "name": "Puri",
+      "country": "IN",
+      "lat": 19.8135,
+      "lon": 85.8312,
+      "elevation_m": 10.0,
+      "coast_km": 2.52,
+      "coast_km_reference": 8,
+      "flood_exposure": 0.66,
+      "salinity_exposure": 0.63,
+      "glofas_cell": {
+        "lat": 19.875,
+        "lon": 85.82501,
+        "mean_q_wet": 15.5
+      },
+      "sea": {
+        "lat": 19.708336,
+        "lon": 85.875015,
+        "distance_km": 12.6,
+        "tidal_range_m": 1.326,
+        "spring_range_m": 1.81,
+        "mean_high_water_m": 1.369
+      },
+      "clay_pct": null
+    },
+    "id-demak": {
+      "id": "id-demak",
+      "name": "Demak",
+      "country": "ID",
+      "lat": -6.8943,
+      "lon": 110.6387,
+      "elevation_m": 5.0,
+      "coast_km": 9.83,
+      "coast_km_reference": 10,
+      "flood_exposure": 0.85,
+      "salinity_exposure": 0.79,
+      "glofas_cell": {
+        "lat": -6.874996,
+        "lon": 110.57501,
+        "mean_q_wet": 27.05
+      },
+      "sea": {
+        "lat": -6.791664,
+        "lon": 110.54167,
+        "distance_km": 15.7,
+        "tidal_range_m": 0.671,
+        "spring_range_m": 0.9,
+        "mean_high_water_m": 1.05
+      },
+      "clay_pct": null
+    },
+    "id-pekalongan": {
+      "id": "id-pekalongan",
+      "name": "Pekalongan",
+      "country": "ID",
+      "lat": -6.8898,
+      "lon": 109.6746,
+      "elevation_m": 9.0,
+      "coast_km": 3.79,
+      "coast_km_reference": 6,
+      "flood_exposure": 0.8,
+      "salinity_exposure": 0.74,
+      "glofas_cell": {
+        "lat": -6.874996,
+        "lon": 109.625,
+        "mean_q_wet": 65.14
+      },
+      "sea": {
+        "lat": -6.708336,
+        "lon": 109.70836,
+        "distance_km": 20.5,
+        "tidal_range_m": 0.577,
+        "spring_range_m": 0.81,
+        "mean_high_water_m": 0.999
+      },
+      "clay_pct": null
+    },
+    "id-indramayu": {
+      "id": "id-indramayu",
+      "name": "Indramayu",
+      "country": "ID",
+      "lat": -6.3373,
+      "lon": 108.3258,
+      "elevation_m": 7.0,
+      "coast_km": 5.1,
+      "coast_km_reference": 14,
+      "flood_exposure": 0.68,
+      "salinity_exposure": 0.61,
+      "glofas_cell": {
+        "lat": -6.324997,
+        "lon": 108.32501,
+        "mean_q_wet": 6.42
+      },
+      "sea": {
+        "lat": -6.208336,
+        "lon": 108.45836,
+        "distance_km": 20.5,
+        "tidal_range_m": 0.542,
+        "spring_range_m": 0.74,
+        "mean_high_water_m": 0.964
+      },
+      "clay_pct": null
+    },
+    "id-semarang": {
+      "id": "id-semarang",
+      "name": "Semarang",
+      "country": "ID",
+      "lat": -6.9932,
+      "lon": 110.4203,
+      "elevation_m": 11.0,
+      "coast_km": 3.66,
+      "coast_km_reference": 5,
+      "flood_exposure": 0.74,
+      "salinity_exposure": 0.66,
+      "glofas_cell": {
+        "lat": -6.9749985,
+        "lon": 110.42502,
+        "mean_q_wet": 17.4
+      },
+      "sea": {
+        "lat": -6.791664,
+        "lon": 110.375015,
+        "distance_km": 23.0,
+        "tidal_range_m": 0.66,
+        "spring_range_m": 0.89,
+        "mean_high_water_m": 1.045
+      },
+      "clay_pct": null
+    }
+  }
+}

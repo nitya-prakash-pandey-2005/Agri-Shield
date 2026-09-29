@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+data/raw/
+data/cache/
+model_weights/*.joblib
+model_weights/archive/
+tests/__pycache__/

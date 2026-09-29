@@ -23,8 +23,8 @@
     "db:setup": "pnpm db:up && pnpm db:migrate && pnpm db:rls && pnpm db:seed"
   },
   "devDependencies": {
-    "turbo": "^2.5.4",
-    "prettier": "^3.5.3",
+    "turbo": "^2.11.4",
+    "prettier": "^3.9.9",
     "typescript": "^5.8.3"
   },
   "engines": {

@@ -1,337 +1,265 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Eye, EyeOff, Tractor, Building2, TruckIcon, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { signIn } from "next-auth/react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Building2, Check, Clock3, Gift, Loader2, Sprout, Truck } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import { homeForRole } from "@/lib/rbac";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { AuthShell, FieldError, FormError, authInput, inputState, safeCallback } from "../_components/AuthShell";
 
-const ROLES = [
-  {
-    id: "farmer",
-    icon: Tractor,
-    title: "Farmer",
-    description: "Protect your crops and get field-level alerts",
-    color: "#22c55e",
-    border: "border-green-500/30 hover:border-green-500",
-  },
-  {
-    id: "government",
-    icon: Building2,
-    title: "Government Officer",
-    description: "Coordinate resources and broadcast alerts",
-    color: "#10b981",
-    border: "border-emerald-500/30 hover:border-emerald-500",
-  },
-  {
-    id: "supply_chain",
-    icon: TruckIcon,
-    title: "Supply Chain Manager",
-    description: "Track commodity risk and disruption scenarios",
-    color: "#f59e0b",
-    border: "border-amber-500/30 hover:border-amber-500",
-  },
-];
+type Role = "farmer" | "field_officer" | "supply_chain_analyst";
 
-export default function SignUpPage() {
-  const [step, setStep] = useState<"role" | "details" | "otp">("role");
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+const COUNTRIES = ["Bangladesh", "India", "Vietnam", "Philippines", "Indonesia", "Sri Lanka", "Other"];
+
+function makeSchema(t: (k: never, v?: Record<string, string | number>) => string) {
+  const tt = t as unknown as (k: string) => string;
+  return z
+    .object({
+      role: z.enum(["farmer", "field_officer", "supply_chain_analyst"]),
+      name: z.string().trim().min(2, tt("auth.nameMin")).max(80),
+      phone: z.string().trim().optional(),
+      email: z.string().trim().optional(),
+      organization: z.string().trim().optional(),
+      country: z.string().min(1),
+      password: z.string().optional(),
+      confirm: z.string().optional(),
+      agree: z.boolean().refine((v) => v, tt("auth.mustAgree")),
+    })
+    .superRefine((v, ctx) => {
+      if (v.role === "farmer") {
+        if (!v.phone || !/^\+?[0-9\s-]{7,20}$/.test(v.phone)) ctx.addIssue({ code: "custom", path: ["phone"], message: tt("auth.phoneInvalid") });
+      } else {
+        if (!v.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) ctx.addIssue({ code: "custom", path: ["email"], message: tt("auth.emailInvalid") });
+        if (!v.organization || v.organization.length < 2) ctx.addIssue({ code: "custom", path: ["organization"], message: tt("auth.orgRequired") });
+        if (!v.password || v.password.length < 8) ctx.addIssue({ code: "custom", path: ["password"], message: tt("auth.passwordMin") });
+        if (v.password !== v.confirm) ctx.addIssue({ code: "custom", path: ["confirm"], message: tt("auth.passwordsMismatch") });
+      }
+    });
+}
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
+
+function SignUpFlow() {
+  const { t, locale } = useI18n();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useSearchParams();
+  const ref = params?.get("ref");
+  const callbackUrl = safeCallback(params?.get("callbackUrl"));
+  const [step, setStep] = useState(0);
+  const [role, setRole] = useState<Role>("farmer");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const register = trpc.auth.register.useMutation();
+  const requestOtp = trpc.auth.requestOtp.useMutation();
 
-  const prefillRole = searchParams.get("role");
+  const form = useForm<FormValues>({
+    resolver: zodResolver(makeSchema(t as never)),
+    mode: "onTouched",
+    defaultValues: { role: "farmer", name: "", phone: "", email: "", organization: "", country: "Bangladesh", password: "", confirm: "", agree: false },
+  });
+  const { register: reg, handleSubmit, formState } = form;
+  const e = formState.errors;
 
-  const handleRoleSelect = (roleId: string) => {
-    setSelectedRole(roleId);
-    setStep("details");
-  };
+  const roles = [
+    { key: "farmer" as const, label: t("auth.roleFarmer"), desc: t("auth.roleFarmerDesc"), icon: Sprout, color: "#10b981" },
+    { key: "field_officer" as const, label: t("auth.roleGov"), desc: t("auth.roleGovDesc"), icon: Building2, color: "#38bdf8" },
+    { key: "supply_chain_analyst" as const, label: t("auth.roleSupply"), desc: t("auth.roleSupplyDesc"), icon: Truck, color: "#f59e0b" },
+  ];
 
-  const handleDetailsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-    setIsLoading(false);
-    if (selectedRole === "farmer") {
-      setStep("otp");
-    } else {
-      // Government/Supply chain goes to org onboarding
-      router.push(`/onboarding/${selectedRole === "government" ? "government" : "supply-chain"}`);
+  const onSubmit = handleSubmit(async (v) => {
+    setError(null);
+    try {
+      if (role === "farmer") {
+        const phone = v.phone!.replace(/\s/g, "");
+        await register.mutateAsync({ name: v.name, role, phone, country: v.country, language: locale });
+        await requestOtp.mutateAsync({ identifier: phone });
+        const q = new URLSearchParams({ identifier: phone, next: "/onboarding/farmer" });
+        router.push(`/auth/otp-verify?${q.toString()}`);
+      } else {
+        await register.mutateAsync({ name: v.name, role, email: v.email!.trim(), password: v.password!, organization: v.organization!, country: v.country, language: locale });
+        const res = await signIn("credentials", { mode: "password", email: v.email!.trim(), password: v.password!, redirect: false });
+        if (!res || res.error) throw new Error(t("auth.errorGeneric"));
+        setPending(`${callbackUrl ?? homeForRole(role)}?verification=pending`);
+        setStep(3);
+      }
+    } catch (err) {
+      setError((err as Error).message || t("auth.errorGeneric"));
     }
-  };
+  });
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsLoading(false);
-    router.push("/onboarding/farmer");
-  };
+  const busy = formState.isSubmitting || register.isPending || requestOtp.isPending;
+  const stepLabels = [t("auth.stepRole"), t("auth.stepLanguage"), t("auth.stepDetails")];
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
-      {/* Background effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/4 w-96 h-96 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #22c55e, transparent)" }} />
-        <div className="absolute -bottom-1/4 -right-1/4 w-96 h-96 rounded-full opacity-5"
-          style={{ background: "radial-gradient(circle, #10b981, transparent)" }} />
-      </div>
-
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-green flex items-center justify-center">
-              <Shield size={22} className="text-white" />
+    <AuthShell wide>
+      {step < 3 && (
+        <>
+          <h1 className="font-display text-2xl font-semibold text-white">{t("auth.signupTitle")}</h1>
+          <p className="mt-1 text-sm text-slate-400">{t("auth.signupSubtitle")}</p>
+          {ref && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-xs text-violet-200">
+              <Gift size={12} /> <span className="telemetry">{ref}</span>
             </div>
-            <span className="font-bold text-2xl text-white">
-              Agri<span className="text-green-400">-SHIELD</span>
-            </span>
-          </Link>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {/* ── STEP 1: Role Selection ── */}
-          {step === "role" && (
-            <motion.div
-              key="role"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass-dark rounded-3xl p-8 border border-white/8"
-            >
-              <h1 className="text-2xl font-bold text-white text-center mb-2">
-                Join Agri-SHIELD
-              </h1>
-              <p className="text-white/50 text-sm text-center mb-8">
-                Select your role to get started
-              </p>
-
-              <div className="space-y-3">
-                {ROLES.map((role) => {
-                  const Icon = role.icon;
-                  return (
-                    <motion.button
-                      key={role.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleRoleSelect(role.id)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${role.border} bg-white/3 hover:bg-white/6`}
-                    >
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${role.color}20`, border: `1px solid ${role.color}30` }}
-                      >
-                        <Icon size={22} style={{ color: role.color }} />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">{role.title}</div>
-                        <div className="text-xs text-white/50">{role.description}</div>
-                      </div>
-                      <ArrowRight size={16} className="ml-auto text-white/30" />
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <p className="text-center text-sm text-white/40 mt-6">
-                Already have an account?{" "}
-                <Link href="/auth/signin" className="text-green-400 hover:text-green-300">
-                  Sign in
-                </Link>
-              </p>
-            </motion.div>
           )}
+          <ol className="mt-5 flex items-center gap-2">
+            {stepLabels.map((s, i) => (
+              <li key={s} className="flex flex-1 items-center gap-2">
+                <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs telemetry", i < step ? "border-emerald-500 bg-emerald-500 text-slate-950" : i === step ? "border-emerald-400 text-emerald-300" : "border-slate-700 text-slate-600")}>{i < step ? <Check size={13} strokeWidth={3} /> : i + 1}</span>
+                <span className={cn("hidden text-xs sm:inline", i === step ? "text-white" : "text-slate-500")}>{s}</span>
+                {i < 2 && <span className={cn("h-px flex-1", i < step ? "bg-emerald-500/60" : "bg-slate-700")} />}
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
-          {/* ── STEP 2: Account Details ── */}
-          {step === "details" && (
-            <motion.div
-              key="details"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass-dark rounded-3xl p-8 border border-white/8"
-            >
-              <button
-                onClick={() => setStep("role")}
-                className="text-white/40 hover:text-white text-sm mb-6 flex items-center gap-1 transition-colors"
-              >
-                ← Back
+      <AnimatePresence mode="wait">
+        {step === 0 && (
+          <motion.div key="role" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="mt-5">
+            <div className="mb-2 text-sm text-slate-300">{t("auth.roleQuestion")}</div>
+            <div role="radiogroup" className="space-y-2">
+              {roles.map((r) => {
+                const on = role === r.key;
+                return (
+                  <motion.button key={r.key} type="button" role="radio" aria-checked={on} whileTap={{ scale: 0.98 }} onClick={() => { setRole(r.key); form.setValue("role", r.key); form.clearErrors(); }} className={cn("flex min-h-[64px] w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors", on ? "bg-slate-900/80" : "border-slate-700/80 bg-slate-950/40 hover:border-slate-500")} style={on ? { borderColor: r.color, boxShadow: `0 0 24px -10px ${r.color}` } : undefined}>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ background: `${r.color}22` }}>
+                      <r.icon size={20} style={{ color: r.color }} />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium text-white">{r.label}</span>
+                      <span className="block text-xs text-slate-400">{r.desc}</span>
+                    </span>
+                    <span className={cn("grid h-5 w-5 place-items-center rounded-full border", on ? "border-transparent" : "border-slate-600")} style={on ? { background: r.color } : undefined}>
+                      {on && <Check size={12} strokeWidth={3} className="text-slate-950" />}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => setStep(1)} className="mt-5 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-slate-950">
+              {t("common.continue")} <ArrowRight size={17} />
+            </motion.button>
+          </motion.div>
+        )}
+
+        {step === 1 && (
+          <motion.div key="lang" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="mt-5">
+            <div className="mb-2 text-sm text-slate-300">{t("auth.chooseLanguage")}</div>
+            <LanguageSwitcher variant="grid" className="sm:grid-cols-2" />
+            <div className="mt-5 flex gap-2">
+              <button onClick={() => setStep(0)} className="flex min-h-[48px] items-center gap-1.5 rounded-xl border border-slate-700 px-4 text-sm text-slate-300">
+                <ArrowLeft size={16} /> {t("common.back")}
               </button>
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setStep(2)} className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-slate-950">
+                {t("common.continue")} <ArrowRight size={17} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
 
-              <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
-              <p className="text-white/50 text-sm mb-8">
-                {selectedRole === "farmer"
-                  ? "You'll verify via SMS OTP next"
-                  : "An admin will verify your organization"}
-              </p>
-
-              <form onSubmit={handleDetailsSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs text-white/50 font-medium mb-1.5 block">
-                    Full Name
+        {step === 2 && (
+          <motion.form key="details" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onSubmit={onSubmit} noValidate className="mt-5 space-y-3">
+            <FormError message={error} />
+            <label className="block">
+              <span className="mb-1.5 block text-sm text-slate-300">{t("auth.fullName")}</span>
+              <input {...reg("name")} autoComplete="name" className={cn(authInput, inputState(e.name))} aria-invalid={!!e.name} />
+              <FieldError message={e.name?.message} />
+            </label>
+            {role === "farmer" ? (
+              <label className="block">
+                <span className="mb-1.5 block text-sm text-slate-300">{t("auth.phone")}</span>
+                <input {...reg("phone")} type="tel" inputMode="tel" autoComplete="tel" placeholder={t("auth.identifierPlaceholder")} className={cn(authInput, inputState(e.phone))} aria-invalid={!!e.phone} />
+                <FieldError message={e.phone?.message} />
+                <span className="mt-1 block text-xs text-slate-500">{t("auth.farmerOtpNote")}</span>
+              </label>
+            ) : (
+              <>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm text-slate-300">{t("auth.organization")}</span>
+                  <input {...reg("organization")} autoComplete="organization" className={cn(authInput, inputState(e.organization))} aria-invalid={!!e.organization} />
+                  <FieldError message={e.organization?.message} />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm text-slate-300">{t("auth.workEmail")}</span>
+                  <input {...reg("email")} type="email" autoComplete="email" className={cn(authInput, inputState(e.email))} aria-invalid={!!e.email} />
+                  <FieldError message={e.email?.message} />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm text-slate-300">{t("auth.password")}</span>
+                    <input {...reg("password")} type="password" autoComplete="new-password" placeholder={t("auth.passwordHint")} className={cn(authInput, inputState(e.password))} aria-invalid={!!e.password} />
+                    <FieldError message={e.password?.message} />
                   </label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="input-base bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-green-500/50"
-                    placeholder="Enter your name"
-                    required
-                  />
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm text-slate-300">{t("auth.confirmPassword")}</span>
+                    <input {...reg("confirm")} type="password" autoComplete="new-password" className={cn(authInput, inputState(e.confirm))} aria-invalid={!!e.confirm} />
+                    <FieldError message={e.confirm?.message} />
+                  </label>
                 </div>
-
-                {selectedRole === "farmer" ? (
-                  <div>
-                    <label className="text-xs text-white/50 font-medium mb-1.5 block">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                      className="input-base bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-green-500/50"
-                      placeholder="+880 1XXXXXXXXX"
-                      required
-                    />
-                    <p className="text-xs text-white/30 mt-1">
-                      We'll send you a one-time OTP
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="text-xs text-white/50 font-medium mb-1.5 block">
-                        Work Email
-                      </label>
-                      <input
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                        className="input-base bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-green-500/50"
-                        placeholder="you@agency.gov"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-white/50 font-medium mb-1.5 block">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={form.password}
-                          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                          className="input-base bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:ring-green-500/50 pr-11"
-                          placeholder="Min 12 characters"
-                          required
-                          minLength={12}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary w-full mt-2"
-                >
-                  {isLoading ? (
-                    <><Loader2 size={18} className="animate-spin" /> Processing...</>
-                  ) : selectedRole === "farmer" ? (
-                    "Send OTP →"
-                  ) : (
-                    "Create Account →"
-                  )}
-                </motion.button>
-              </form>
-            </motion.div>
-          )}
-
-          {/* ── STEP 3: OTP Verification ── */}
-          {step === "otp" && (
-            <motion.div
-              key="otp"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass-dark rounded-3xl p-8 border border-white/8 text-center"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl">📱</span>
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-2">Verify Your Phone</h1>
-              <p className="text-white/50 text-sm mb-8">
-                Enter the 6-digit OTP sent to{" "}
-                <span className="text-white">{form.phone || "+880 1XXXXXXXXX"}</span>
-                <br />
-                <span className="text-green-400 text-xs">(Demo: use 123456)</span>
-              </p>
-
-              <form onSubmit={handleOtpSubmit}>
-                <div className="flex gap-3 justify-center mb-6">
-                  {otpDigits.map((digit, i) => (
-                    <input
-                      key={i}
-                      id={`otp-${i}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/, "");
-                        const next = [...otpDigits];
-                        next[i] = val;
-                        setOtpDigits(next);
-                        if (val && i < 5) {
-                          document.getElementById(`otp-${i + 1}`)?.focus();
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Backspace" && !digit && i > 0) {
-                          document.getElementById(`otp-${i - 1}`)?.focus();
-                        }
-                      }}
-                      className="w-12 h-14 text-center text-xl font-bold rounded-xl bg-white/5 border border-white/10 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none transition-all"
-                    />
-                  ))}
-                </div>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  type="submit"
-                  disabled={isLoading || otpDigits.join("").length < 6}
-                  className="btn-primary w-full"
-                >
-                  {isLoading ? (
-                    <><Loader2 size={18} className="animate-spin" /> Verifying...</>
-                  ) : (
-                    "Verify & Continue →"
-                  )}
-                </motion.button>
-              </form>
-
-              <button className="text-xs text-white/30 hover:text-white/60 mt-4 transition-colors">
-                Didn't receive it? Resend in 45s
+              </>
+            )}
+            <label className="block">
+              <span className="mb-1.5 block text-sm text-slate-300">{t("auth.country")}</span>
+              <select {...reg("country")} className={cn(authInput, inputState(false))}>
+                {COUNTRIES.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-3 pt-1">
+              <input type="checkbox" {...reg("agree")} className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-500" />
+              <span className="text-sm text-slate-300">{t("auth.agreeTerms")}</span>
+            </label>
+            <FieldError message={e.agree?.message} />
+            <div className="flex gap-2 pt-1">
+              <button type="button" onClick={() => setStep(1)} className="flex min-h-[48px] items-center gap-1.5 rounded-xl border border-slate-700 px-4 text-sm text-slate-300">
+                <ArrowLeft size={16} />
               </button>
+              <motion.button whileTap={{ scale: 0.97 }} type="submit" disabled={busy} className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-slate-950 shadow-[0_0_24px_-6px_rgba(16,185,129,0.9)] disabled:opacity-60">
+                {busy ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />} {busy ? t("auth.creating") : t("auth.createAccountCta")}
+              </motion.button>
+            </div>
+          </motion.form>
+        )}
+
+        {step === 3 && pending && (
+          <motion.div key="pending" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 160, damping: 14 }} className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-500/15 ring-1 ring-amber-400/40">
+              <Clock3 size={28} className="text-amber-300" />
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+            <h1 className="mt-5 font-display text-2xl font-semibold text-white">{t("auth.pendingTitle")}</h1>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">{t("auth.pendingBody")}</p>
+            <motion.button whileTap={{ scale: 0.97 }} onClick={() => { router.push(pending); router.refresh(); }} className="mt-6 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 font-semibold text-slate-950">
+              {t("auth.goToDashboard")} <ArrowRight size={17} />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {step < 3 && (
+        <p className="mt-6 text-center text-sm text-slate-400">
+          {t("auth.haveAccount")}{" "}
+          <Link href="/auth/signin" className="font-medium text-emerald-400 hover:underline">
+            {t("auth.signIn")}
+          </Link>
+        </p>
+      )}
+    </AuthShell>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpFlow />
+    </Suspense>
   );
 }

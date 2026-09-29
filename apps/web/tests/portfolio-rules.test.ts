@@ -31,6 +31,10 @@ const snap = (over: Partial<MetricSnapshot> = {}): MetricSnapshot => ({
   drought_risk: 10,
   heat_risk: 5,
   river_discharge_ratio: 1.1,
+  sensor_water_level_m: null,
+  sensor_water_rise_6h_m: null,
+  sensor_soil_ec: null,
+  sensor_soil_moisture: null,
   ...over,
 });
 
@@ -200,5 +204,21 @@ describe("payloads", () => {
     const text = describeRule({ conditions: [{ metric: "rain_72h_mm", op: ">=", value: 150 }, { metric: "flood_prob_72h", op: ">", value: 50 }], match: "any", scope: { tags: ["parametric"] }, channels: ["app", "email"], cooldownHours: 12 });
     expect(text).toBe("If rain forecast (next 72 h) is at least 150 mm OR flood probability (next 72 h) is above 50% for assets tagged parametric, notify via app, email (then wait 12 h before repeating).");
     expect(explainResults([{ metric: "salinity_ec", op: ">", value: 3, actual: 4.25, pass: true }])).toBe("Salinity 4.3 dS/m > 3.0 dS/m");
+  });
+});
+
+describe("sensor ground-truth metrics", () => {
+  it("fires on a gauge rise only when a fresh sensor reading exists", () => {
+    const rule = { conditions: [{ metric: "sensor_water_rise_6h_m" as const, op: ">=" as const, value: 0.5 }], match: "all" as const };
+    expect(evaluateConditions(rule, snap({ sensor_water_rise_6h_m: 0.8 })).matched).toBe(true);
+    expect(evaluateConditions(rule, snap({ sensor_water_rise_6h_m: 0.2 })).matched).toBe(false);
+    // no sensor linked / stale / faulty → null → never fires
+    expect(evaluateConditions(rule, snap()).matched).toBe(false);
+  });
+
+  it("snapshots built from forecasts leave sensor metrics empty", () => {
+    const s = snapshotFrom(null, { floodRisk: 50, salinityRisk: 20, droughtRisk: 10, heatRisk: 5, composite: 55 });
+    expect(s.sensor_soil_ec).toBeNull();
+    expect(s.sensor_water_level_m).toBeNull();
   });
 });

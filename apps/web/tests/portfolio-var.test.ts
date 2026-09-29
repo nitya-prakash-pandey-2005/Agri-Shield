@@ -177,7 +177,7 @@ describe("portfolio service (store-backed, offline)", () => {
     rule.channels = ["sms"];
     rule.recipients = ["ngo@demo.agrishield.io", "+8801711000000"];
     const assets = workspaceAssets("org-ngo-brac");
-    const ev = evaluateRule({ ...rule, conditions: [{ metric: "composite", op: ">=", value: 0 }] }, assets, new Map(assets.map((a) => [a.id, { flood_prob_72h: 1, flood_prob_24h: 1, salinity_ec: 1, composite: 50, rain_24h_mm: 1, rain_72h_mm: 1, drought_risk: 1, heat_risk: 1, river_discharge_ratio: 1 }])), { ignoreCooldown: true });
+    const ev = evaluateRule({ ...rule, conditions: [{ metric: "composite", op: ">=", value: 0 }] }, assets, new Map(assets.map((a) => [a.id, { flood_prob_72h: 1, flood_prob_24h: 1, salinity_ec: 1, composite: 50, rain_24h_mm: 1, rain_72h_mm: 1, drought_risk: 1, heat_risk: 1, river_discharge_ratio: 1, sensor_water_level_m: null, sensor_water_rise_6h_m: null, sensor_soil_ec: null, sensor_soil_moisture: null }])), { ignoreCooldown: true });
     const f = await dispatchFiring(rule, ev, "manual", "test");
     const sms = f.deliveries.filter((d) => d.channel === "sms");
     expect(sms.some((d) => d.to === "+8801711000000" && d.status === "simulated")).toBe(true);

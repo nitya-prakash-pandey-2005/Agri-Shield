@@ -1,3 +1,4 @@
+import { OPENAPI_FRAGMENT as IOT_OPENAPI } from "../services/iot-docs";
 /**
  * Hand-written OpenAPI 3.1 description of the public REST API (spec §10).
  * Served at GET /api/v1/openapi.json.
@@ -8,7 +9,7 @@ const errorRef = { $ref: "#/components/schemas/Error" };
 const err = (description: string) => ({ description, content: { "application/json": { schema: errorRef } } });
 
 export function openApiDocument(serverUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000") {
-  return {
+  const doc = {
     openapi: "3.1.0",
     info: {
       title: "Agri-SHIELD Public API",
@@ -229,4 +230,15 @@ export function openApiDocument(serverUrl = process.env.NEXT_PUBLIC_APP_URL ?? "
       },
     },
   };
+  return mergeFragment(doc, IOT_OPENAPI);
+}
+
+/** Merge a module's OpenAPI fragment (paths, tags, security schemes, schemas) into the document. */
+function mergeFragment<T extends Record<string, unknown>>(doc: T, frag: { paths?: object; tags?: unknown[]; components?: { securitySchemes?: object; schemas?: object } }): T {
+  const d = doc as unknown as { paths: Record<string, unknown>; tags?: unknown[]; components: { securitySchemes: Record<string, unknown>; schemas: Record<string, unknown> } };
+  Object.assign(d.paths, frag.paths ?? {});
+  if (frag.tags) d.tags = [...(d.tags ?? []), ...frag.tags];
+  Object.assign(d.components.securitySchemes, frag.components?.securitySchemes ?? {});
+  Object.assign(d.components.schemas, frag.components?.schemas ?? {});
+  return doc;
 }

@@ -25,6 +25,8 @@
  *   This is an expected-loss style indicator for triage and disclosure, not a regulatory
  *   (Basel/Solvency) VaR quantile; every figure is tagged with its source.
  */
+import { latestSensorMetrics, type AssetSensorMetrics } from "./iot-analytics";
+import { iotReady } from "./iot-service";
 import { createHmac, randomUUID } from "node:crypto";
 import type { AssetType, CropType } from "@agri-shield/types";
 import { audit, getStore, nextId, riskLevelFromScore, type AlertRuleRecord, type AssetRecord, type UserRecord } from "../data/store";
@@ -212,9 +214,33 @@ export function change7d(a: AssetRecord, current: number, now = new Date()): num
 
 export function snapshotForAsset(a: AssetRecord): MetricSnapshot {
   const q = portfolioState.quick.get(a.id);
-  if (q) return snapshotFrom(q, null);
   const e = effectiveScore(a);
-  return snapshotFrom(null, { floodRisk: e.flood, salinityRisk: e.salinity, droughtRisk: e.drought, heatRisk: e.heat, composite: e.composite });
+  const snap = q ? snapshotFrom(q, null) : snapshotFrom(null, { floodRisk: e.flood, salinityRisk: e.salinity, droughtRisk: e.drought, heatRisk: e.heat, composite: e.composite });
+  // Merge ground truth from linked IoT sensors (fresh, non-faulty readings only)
+  const s = sensorMetricsFor(a.workspaceId)[a.id];
+  if (s) {
+    snap.sensor_water_level_m = s.water_level_m;
+    snap.sensor_water_rise_6h_m = s.water_level_rise_6h_m;
+    snap.sensor_soil_ec = s.soil_ec;
+    snap.sensor_soil_moisture = s.soil_moisture;
+  }
+  return snap;
+}
+
+/** Per-workspace sensor metrics, memoised for 30 s so rule evaluation over many assets stays cheap. */
+const sensorMemo = new Map<string, { at: number; data: Record<string, AssetSensorMetrics> }>();
+function sensorMetricsFor(orgId: string): Record<string, AssetSensorMetrics> {
+  const hit = sensorMemo.get(orgId);
+  if (hit && Date.now() - hit.at < 30_000) return hit.data;
+  let data: Record<string, AssetSensorMetrics> = {};
+  try {
+    // Read-only: never boot the sensor fleet from inside rule evaluation
+    if (iotReady()) data = latestSensorMetrics(orgId);
+  } catch {
+    data = {};
+  }
+  sensorMemo.set(orgId, { at: Date.now(), data });
+  return data;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────

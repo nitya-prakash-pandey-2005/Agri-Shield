@@ -80,7 +80,12 @@ export type RuleMetric =
   | "rain_72h_mm"
   | "drought_risk"
   | "heat_risk"
-  | "river_discharge_ratio";
+  | "river_discharge_ratio"
+  // Ground-truth from linked IoT sensors (null when no fresh, healthy reading)
+  | "sensor_water_level_m"
+  | "sensor_water_rise_6h_m"
+  | "sensor_soil_ec"
+  | "sensor_soil_moisture";
 
 export interface AlertRuleRecord {
   id: string;

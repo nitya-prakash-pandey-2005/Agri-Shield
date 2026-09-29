@@ -39,6 +39,10 @@ export const METRICS: Record<RuleMetric, MetricMeta> = {
   rain_72h_mm: { label: "Rain forecast (next 72 h)", short: "Rain 72h", unit: "mm", help: "Total forecast rainfall over the next 3 days — the usual window for parametric rainfall triggers.", min: 0, max: 600, step: 1, suggested: 120 },
   drought_risk: { label: "Drought risk score", short: "Drought", unit: "/100", help: "How far evaporation will exceed rainfall over the next week (FAO-56 water balance), as 0-100.", min: 0, max: 100, step: 1, suggested: 50 },
   heat_risk: { label: "Heat-stress risk score", short: "Heat", unit: "/100", help: "Crop heat stress from the forecast maximum temperature (0 at 32 °C, 100 at 42 °C+).", min: 0, max: 100, step: 1, suggested: 50 },
+  sensor_water_level_m: { label: "Sensor: water level (gauge)", short: "Gauge level", unit: "m", help: "Latest reading from a river/canal water-level gauge linked to the asset. Only fresh (< 6 h), healthy sensors count — stuck or spiking sensors are ignored.", min: 0, max: 15, step: 0.05, suggested: 3 },
+  sensor_water_rise_6h_m: { label: "Sensor: water rise in 6 h", short: "Gauge rise 6h", unit: "m", help: "How much the linked gauge rose over the last 6 hours — the classic flash-flood warning signal. 0.5 m in 6 h is fast.", min: 0, max: 5, step: 0.05, suggested: 0.5 },
+  sensor_soil_ec: { label: "Sensor: soil salinity (EC probe)", short: "Probe EC", unit: "dS/m", help: "Measured (not modelled) soil salinity from a linked EC probe, 1-hour mean. Rice starts losing yield above ~3 dS/m.", min: 0, max: 20, step: 0.1, suggested: 4 },
+  sensor_soil_moisture: { label: "Sensor: soil moisture", short: "Soil moisture", unit: "%", help: "Volumetric soil water from a linked probe. Below ~15 % most crops are stressed; above ~45 % the soil is saturated.", min: 0, max: 60, step: 1, suggested: 15 },
   river_discharge_ratio: { label: "River discharge vs normal", short: "River", unit: "×", help: "Forecast peak river flow divided by the 30-day average (GloFAS). 1.5× means 50 % above normal; 2× often means overbank flooding.", min: 0, max: 10, step: 0.1, suggested: 1.5 },
 };
 
@@ -68,6 +72,8 @@ export interface QuickMetrics {
  * falls back to the stored AssetAssessment (EC derived from the salinity
  * score, rain/discharge unknown → null).
  */
+const NO_SENSOR = { sensor_water_level_m: null, sensor_water_rise_6h_m: null, sensor_soil_ec: null, sensor_soil_moisture: null } as const;
+
 export function snapshotFrom(q: QuickMetrics | null | undefined, a: Pick<AssetAssessment, "floodRisk" | "salinityRisk" | "droughtRisk" | "heatRisk" | "composite"> | null | undefined): MetricSnapshot {
   if (q) {
     const live = q.source !== "fallback";
@@ -82,6 +88,7 @@ export function snapshotFrom(q: QuickMetrics | null | undefined, a: Pick<AssetAs
       drought_risk: q.droughtRisk,
       heat_risk: q.heatRisk,
       river_discharge_ratio: q.dischargeRatio,
+      ...NO_SENSOR,
     };
   }
   if (a) {
@@ -95,9 +102,10 @@ export function snapshotFrom(q: QuickMetrics | null | undefined, a: Pick<AssetAs
       drought_risk: a.droughtRisk,
       heat_risk: a.heatRisk,
       river_discharge_ratio: null,
+      ...NO_SENSOR,
     };
   }
-  return { flood_prob_72h: null, flood_prob_24h: null, salinity_ec: null, composite: null, rain_24h_mm: null, rain_72h_mm: null, drought_risk: null, heat_risk: null, river_discharge_ratio: null };
+  return { flood_prob_72h: null, flood_prob_24h: null, salinity_ec: null, composite: null, rain_24h_mm: null, rain_72h_mm: null, drought_risk: null, heat_risk: null, river_discharge_ratio: null, ...NO_SENSOR };
 }
 
 export interface ScopedAsset {

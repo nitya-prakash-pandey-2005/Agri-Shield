@@ -67,6 +67,10 @@ export function startIntervalScheduler(reason = "in-process timers") {
   every("climate-scan", CADENCE.climateScanMin * MIN, 15_000);
   every("notification-dispatch", 2 * MIN, 40_000);
   every("portfolio-monitor", CADENCE.portfolioMonitorMin * MIN, CADENCE.portfolioFirstRunMs);
+  // IoT sensor fleet: seed + start the 60 s telemetry loop so alert rules can use ground truth
+  timer(() => {
+    void import("../services/iot-service").then((m) => m.ensureIot()).catch((e) => console.warn("[scheduler] IoT boot failed:", e));
+  }, 20_000);
   // satellite: once shortly after boot (non-blocking, ~2 min of polite API calls), then daily 02:00 UTC
   if (process.env.SATELLITE_BOOT_INGEST !== "false") timer(() => fire("satellite-ingest", "boot"), 45_000);
   atWallClock("satellite-ingest", () => nextUtc(2, 0));

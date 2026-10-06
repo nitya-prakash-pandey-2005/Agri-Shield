@@ -18,12 +18,12 @@
     "type-check": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "drizzle-orm": "^0.40.1",
+    "drizzle-orm": "^0.45.3",
     "postgres": "^3.4.5",
-    "@types/pg": "^8.11.14"
+    "@types/pg": "^8.23.1"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.1",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^5.8.3"
   }
 }
